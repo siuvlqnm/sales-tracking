@@ -18,6 +18,7 @@ export default function SalesForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
   const [salesInfo, setSalesInfo] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -25,6 +26,12 @@ export default function SalesForm() {
     if (tracking) {
       setTrackingId(tracking);
       fetchSalesInfo(tracking);
+    } else {
+      setIsLoading(false);
+      setSubmitStatus({
+        success: false,
+        message: '无效的访问链接，请使用正确的销售链接。'
+      });
     }
   }, [searchParams]);
 
@@ -40,6 +47,8 @@ export default function SalesForm() {
         success: false,
         message: '获取销售信息失败，请重试。'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -131,7 +140,11 @@ export default function SalesForm() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-3">
-          {trackingId ? (
+          {isLoading ? (
+            <Alert>
+              <AlertDescription>正在验证访问权限...</AlertDescription>
+            </Alert>
+          ) : salesInfo ? (
             <>
               {amounts.map((amount, index) => (
                 <div key={index} className="flex items-center space-x-2">
@@ -173,13 +186,13 @@ export default function SalesForm() {
           ) : (
             <Alert variant="destructive">
               <AlertDescription>
-                {submitStatus.message || '正在验证访问权限...'}
+                {submitStatus.message}
               </AlertDescription>
             </Alert>
           )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-3 pt-2">
-          {trackingId && (
+          {salesInfo && (
             <Button 
               type="submit" 
               className="w-full text-base py-5" 
@@ -189,8 +202,8 @@ export default function SalesForm() {
               {isSubmitting ? '提交中...' : '提交'}
             </Button>
           )}
-          {submitStatus.message && (
-            <Alert variant={submitStatus.success ? "default" : "destructive"}>
+          {submitStatus.message && submitStatus.success && (
+            <Alert variant="default">
               <AlertDescription className="text-sm">
                 {submitStatus.message}
               </AlertDescription>
