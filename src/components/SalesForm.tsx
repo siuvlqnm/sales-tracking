@@ -1,41 +1,47 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// 假设这是你的 Worker URL
+// const WORKER_URL = 'https://your-worker.your-subdomain.workers.dev';
+const WORKER_URL = 'localhost:3000';
+
 export default function SalesForm() {
+  const [trackingId, setTrackingId] = useState('');
   const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
-  const [trackingId, setTrackingId] = useState<string | null>(null);
+  const [salesInfo, setSalesInfo] = useState(null);
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // 从URL中获取追踪参数
-    const urlParams = new URLSearchParams(window.location.search);
-    const trackingParam = urlParams.get('tracking');
-    
-    if (!trackingParam) {
+    const tracking = searchParams.get('tracking');
+    if (tracking) {
+      setTrackingId(tracking);
+      fetchSalesInfo(tracking);
+    }
+  }, [searchParams]);
+
+  const fetchSalesInfo = async (tracking: string) => {
+    try {
+      const response = await fetch(`${WORKER_URL}/api/salesInfo?tracking_id=${tracking}`);
+      if (!response.ok) throw new Error('Failed to fetch sales info');
+      const data = await response.json();
+      setSalesInfo(data);
+    } catch (error) {
+      console.error('Error fetching sales info:', error);
       setSubmitStatus({
         success: false,
-        message: '无效的访问链接，请使用正确的销售链接。'
+        message: '获取销售信息失败，请重试。'
       });
-    } else {
-      // 验证追踪参数格式
-      const isValidTracking = /^[A-Za-z0-9_-]{10,32}$/.test(trackingParam);
-      if (isValidTracking) {
-        setTrackingId(trackingParam);
-      } else {
-        setSubmitStatus({
-          success: false,
-          message: '无效的追踪参数，请联系管理员。'
-        });
-      }
     }
-  }, []);
+  };
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
@@ -62,10 +68,10 @@ export default function SalesForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trackingId) {
+    if (!salesInfo) {
       setSubmitStatus({
         success: false,
-        message: '缺少有效的追踪参数，无法提交数据。'
+        message: '缺少销售人员信息，无法提交数据。'
       });
       return;
     }
@@ -73,7 +79,6 @@ export default function SalesForm() {
     setIsSubmitting(true);
     setSubmitStatus({ success: false, message: '' });
 
-    // 过滤掉空值并验证数据
     const validAmounts = amounts.filter(amount => amount).map(amount => parseFloat(amount));
     if (validAmounts.length === 0) {
       setSubmitStatus({
@@ -85,15 +90,14 @@ export default function SalesForm() {
     }
 
     try {
-      const response = await fetch('/api/submit-sales', {
+      const response = await fetch(`${WORKER_URL}/api/recordSales`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // 添加CSRF令牌（如果有的话）
-          // 'X-CSRF-Token': getCsrfToken(),
         },
         body: JSON.stringify({
-          tracking_id: trackingId,
+          salesperson_id: salesInfo.salesperson_id,
+          store_id: salesInfo.store_id,
           amounts: validAmounts,
           timestamp: new Date().toISOString(),
         })
@@ -105,7 +109,7 @@ export default function SalesForm() {
 
       setSubmitStatus({ 
         success: true, 
-        message: `提交成功！共提交 ${validAmounts.length} 笔成交金额。` 
+        message: `提交成功！${data.message}。销售员：${salesInfo.salesperson_name}，门店：${salesInfo.store_name}` 
       });
       setAmounts(['']);
     } catch (error: unknown) {
