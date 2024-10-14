@@ -4,5 +4,5 @@ compatibility_date = "2023-05-18"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "sales_tracking_db"
-database_id = "da47669f-6f9f-4d9e-8970-618a7c1d5009"
+database_name = ""
+database_id = ""
