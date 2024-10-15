@@ -12,12 +12,20 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 // const WORKER_URL = 'https://your-worker.your-subdomain.workers.dev';
 const WORKER_URL = 'localhost:3000';
 
+// Add this interface at the top of your file
+interface SalesInfo {
+  salesperson_id: string;
+  store_id: string;
+  salesperson_name: string;
+  store_name: string;
+}
+
 export default function SalesForm() {
   const [trackingId, setTrackingId] = useState('');
   const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
-  const [salesInfo, setSalesInfo] = useState(null);
+  const [salesInfo, setSalesInfo] = useState<SalesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const searchParams = useSearchParams();
 
