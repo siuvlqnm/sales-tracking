@@ -10,7 +10,7 @@ const Navbar = () => {
     <nav className="bg-gray-800 text-white p-4">
       <div className="container mx-auto flex justify-between items-center">
         <Link href="/" className="text-xl font-bold">
-          销售管理系统
+          实收管理
         </Link>
         <div className="space-x-4">
           <Link 

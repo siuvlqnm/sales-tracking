@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+// Remove the unused import
+// import { useSearchParams } from 'next/navigation';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ReadonlyURLSearchParams } from 'next/navigation';
 
 // 假设这是你的 Worker URL
 // const WORKER_URL = 'https://your-worker.your-subdomain.workers.dev';
@@ -20,19 +22,21 @@ interface SalesInfo {
   store_name: string;
 }
 
-export default function SalesForm() {
-  const [trackingId, setTrackingId] = useState('');
+interface SalesFormProps {
+  searchParams: ReadonlyURLSearchParams;
+}
+
+export default function SalesForm({ searchParams }: SalesFormProps) {
+  // const [trackingId, setTrackingId] = useState('');
   const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
   const [salesInfo, setSalesInfo] = useState<SalesInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     const tracking = searchParams.get('tracking');
     if (tracking) {
-      setTrackingId(tracking);
       fetchSalesInfo(tracking);
     } else {
       setIsLoading(false);

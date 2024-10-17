@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // import { useSession } from 'next-auth/react';
 import { format, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,13 +49,7 @@ export default function SalesCharts() {
   const [loading, setLoading] = useState(false); // 设置为 false，因为我们使用测试数据
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    // 注释掉实际的 API 调用，使用测试数据
-    // fetchChartData();
-    console.log('Time range changed:', timeRange);
-  }, [timeRange]);
-
-  const fetchChartData = async () => {
+  const fetchChartData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -79,8 +73,15 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [timeRange]);
 
+  useEffect(() => {
+    if (false) {
+      fetchChartData();
+    }
+    console.log('Time range changed:', timeRange);
+  }, [timeRange, fetchChartData]);
+  
   if (loading) return <div className="text-center py-10">加载中...</div>;
   if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
   if (!salesData) return null;

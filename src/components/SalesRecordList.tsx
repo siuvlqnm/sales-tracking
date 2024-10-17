@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // import { useSession } from 'next-auth/react';
 import { format, subDays } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -53,11 +53,7 @@ export default function SalesRecordList() {
   const [salesperson, setSalesperson] = useState('');
   const [store, setStore] = useState('');
 
-  useEffect(() => {
-    fetchRecords();
-  }, [date, salesperson, store]);
-
-  const fetchRecords = async () => {
+  const fetchRecords = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -104,7 +100,11 @@ export default function SalesRecordList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [date, salesperson, store]);
+
+  useEffect(() => {
+    fetchRecords();
+  }, [fetchRecords]);
 
   return (
     <div className="container mx-auto px-4 py-8">
