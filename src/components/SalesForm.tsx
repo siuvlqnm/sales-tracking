@@ -1,68 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-// Remove the unused import
-// import { useSearchParams } from 'next/navigation';
+import React, { useState } from 'react';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ReadonlyURLSearchParams } from 'next/navigation';
+import { AuthWrapper } from '@/components/AuthWrapper';
+import { getUser } from '@/lib/userManager';
 
 // 假设这是你的 Worker URL
-// const WORKER_URL = 'https://your-worker.your-subdomain.workers.dev';
 const WORKER_URL = 'localhost:3000';
 
-// Add this interface at the top of your file
-interface SalesInfo {
-  salesperson_id: string;
-  store_id: string;
-  salesperson_name: string;
-  store_name: string;
-}
-
-interface SalesFormProps {
-  searchParams: ReadonlyURLSearchParams;
-}
-
-export default function SalesForm({ searchParams }: SalesFormProps) {
-  // const [trackingId, setTrackingId] = useState('');
+export default function SalesForm() {
   const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
-  const [salesInfo, setSalesInfo] = useState<SalesInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const tracking = searchParams.get('tracking');
-    if (tracking) {
-      fetchSalesInfo(tracking);
-    } else {
-      setIsLoading(false);
-      setSubmitStatus({
-        success: false,
-        message: '无效的访问链接，请使用正确的销售链接。'
-      });
-    }
-  }, [searchParams]);
-
-  const fetchSalesInfo = async (tracking: string) => {
-    try {
-      const response = await fetch(`${WORKER_URL}/api/salesInfo?tracking_id=${tracking}`);
-      if (!response.ok) throw new Error('Failed to fetch sales info');
-      const data = await response.json();
-      setSalesInfo(data);
-    } catch (error) {
-      console.error('Error fetching sales info:', error);
-      setSubmitStatus({
-        success: false,
-        message: '获取销售信息失败，请重试。'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
@@ -89,7 +42,8 @@ export default function SalesForm({ searchParams }: SalesFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!salesInfo) {
+    const user = getUser();
+    if (!user) {
       setSubmitStatus({
         success: false,
         message: '缺少销售人员信息，无法提交数据。'
@@ -117,8 +71,7 @@ export default function SalesForm({ searchParams }: SalesFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          salesperson_id: salesInfo.salesperson_id,
-          store_id: salesInfo.store_id,
+          salesperson_id: user.id,
           amounts: validAmounts,
           timestamp: new Date().toISOString(),
         })
@@ -130,7 +83,7 @@ export default function SalesForm({ searchParams }: SalesFormProps) {
 
       setSubmitStatus({ 
         success: true, 
-        message: `提交成功！${data.message}。销售员：${salesInfo.salesperson_name}，门店：${salesInfo.store_name}` 
+        message: `提交成功！${data.message}。` 
       });
       setAmounts(['']);
     } catch (error: unknown) {
@@ -144,20 +97,17 @@ export default function SalesForm({ searchParams }: SalesFormProps) {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="space-y-1 pb-4">
-        <CardDescription className="text-sm sm:text-base text-center">
-          请输入您的成交金额，可添加多笔记录（最多10笔）
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-3">
-          {isLoading ? (
-            <Alert>
-              <AlertDescription>正在验证访问权限...</AlertDescription>
-            </Alert>
-          ) : salesInfo ? (
-            <>
+    <AuthWrapper>
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">录入新销售</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              请输入您的成交金额，可添加多笔记录（最多10笔）
+            </CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-3">
               {amounts.map((amount, index) => (
                 <div key={index} className="flex items-center space-x-2">
                   <Input
@@ -194,35 +144,27 @@ export default function SalesForm({ searchParams }: SalesFormProps) {
                   <Plus className="h-4 w-4 mr-2" /> 添加金额
                 </Button>
               )}
-            </>
-          ) : (
-            <Alert variant="destructive">
-              <AlertDescription>
-                {submitStatus.message}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-3 pt-2">
-          {salesInfo && (
-            <Button 
-              type="submit" 
-              className="w-full text-base py-5" 
-              disabled={isSubmitting || amounts.every(a => !a)}
-            >
-              {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-              {isSubmitting ? '提交中...' : '提交'}
-            </Button>
-          )}
-          {submitStatus.message && submitStatus.success && (
-            <Alert variant="default">
-              <AlertDescription className="text-sm">
-                {submitStatus.message}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardFooter>
-      </form>
-    </Card>
+            </CardContent>
+            <CardFooter className="flex flex-col space-y-3 pt-2">
+              <Button 
+                type="submit" 
+                className="w-full text-base py-5" 
+                disabled={isSubmitting || amounts.every(a => !a)}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                {isSubmitting ? '提交中...' : '提交'}
+              </Button>
+              {submitStatus.message && (
+                <Alert variant={submitStatus.success ? "default" : "destructive"}>
+                  <AlertDescription className="text-sm">
+                    {submitStatus.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardFooter>
+          </form>
+        </Card>
+      </div>
+    </AuthWrapper>
   );
 }

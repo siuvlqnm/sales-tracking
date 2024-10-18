@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import ClientSalesForm from '@/components/ClientSalesForm';
+import SalesForm from '@/components/SalesForm';
 
 export default function SalesFormPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <ClientSalesForm />
-    </Suspense>
-  );
+  return <SalesForm />;
 }

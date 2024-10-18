@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, User } from '@/lib/auth';
+import { AuthWrapper } from '@/components/AuthWrapper';
 import { 
   generateSalesRecords, 
   generatePerformanceData, 
@@ -14,6 +14,8 @@ import {
   PerformanceData,
   Salesperson
 } from '@/lib/testData';
+import { useEffect, useState } from 'react';
+import { User, getUser } from '@/lib/userManager';
 
 // 销售人员视图
 function SalespersonView({ user }: { user: User }) {
@@ -21,7 +23,6 @@ function SalespersonView({ user }: { user: User }) {
   const [performance, setPerformance] = useState<PerformanceData>({ monthlySales: 0, monthlyOrders: 0 });
 
   useEffect(() => {
-    // 使用测试数据生成函数
     setRecentSales(generateSalesRecords(5));
     setPerformance(generatePerformanceData());
   }, []);
@@ -77,7 +78,6 @@ function ManagerView() {
   const [topSalespeople, setTopSalespeople] = useState<Salesperson[]>([]);
 
   useEffect(() => {
-    // 使用测试数据生成函数
     setTeamPerformance(generateTeamPerformance());
     setTopSalespeople(generateTopSalespeople(5));
   }, []);
@@ -127,21 +127,14 @@ function ManagerView() {
 }
 
 export default function Home() {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-  }, []);
-
-  if (!user) {
-    return <div>Loading...</div>;
-  }
-
+  const user = getUser();
   return (
-    <main className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">销售管理系统</h1>
-      {user.role === 'salesperson' ? <SalespersonView user={user} /> : <ManagerView />}
-    </main>
+    <AuthWrapper>
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {user ? (
+          user.role === 'manager' ? <ManagerView /> : <SalespersonView user={user} />
+      ) : null}
+      </div>
+    </AuthWrapper>
   );
 }

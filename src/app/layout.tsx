@@ -2,12 +2,13 @@ import '@/app/globals.css'
 import type { Metadata } from 'next'
 // import { Inter } from 'next/font/google'
 import Navbar from '@/components/Navbar'
+import ClientWrapper from '@/components/ClientWrapper'
 
 // const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: '销售数据提交系统',
-  description: '提交您的销售数据',
+  title: 'Your App',
+  description: 'Your app description',
 }
 
 export default function RootLayout({
@@ -18,10 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        <main className="container mx-auto mt-8">
+        <ClientWrapper>
+          <Navbar />
           {children}
-        </main>
+        </ClientWrapper>
       </body>
     </html>
   )

@@ -17,6 +17,13 @@ export interface Salesperson {
   sales: string;
 }
 
+// 添加新的接口定义
+export interface TestUser {
+  name: string;
+  id: string;
+  role: string;
+}
+
 // 生成随机销售记录
 export function generateSalesRecords(count: number): SalesRecord[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -51,3 +58,16 @@ export function generateTeamPerformance(): PerformanceData {
     monthlyOrders: Math.floor(Math.random() * 1000 + 200)
   };
 }
+
+// 添加测试销售人员和店长信息
+export const testSalesperson: TestUser = {
+  name: "张三",
+  id: "S001",
+  role: "销售"
+};
+
+export const testManager: TestUser = {
+  name: "李四",
+  id: "M001",
+  role: "店长"
+};
