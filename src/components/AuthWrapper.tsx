@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getUser, setUserFromParams, User } from '@/lib/userManager';
+import { getUser, setUserFromParams, User, clearUser } from '@/lib/userManager';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -71,6 +71,13 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     }
   };
 
+  const handleLogout = () => {
+    clearUser();
+    setUser(null);
+    setShowTrackingInput(true);
+    setTrackingId('');
+  };
+
   if (isLoading) {
     return (
       <Alert>
@@ -90,7 +97,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
   return (
     <>
       <Dialog open={showTrackingInput} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="w-[90%] max-w-[425px] sm:w-full">
           <DialogHeader>
             <DialogTitle>请输入您的 Tracking ID</DialogTitle>
             <DialogDescription>
@@ -109,7 +116,14 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {user ? children : null}
+      {user ? (
+        <div>
+          {children}
+          <Button onClick={handleLogout} className="fixed bottom-4 right-4">
+            退出
+          </Button>
+        </div>
+      ) : null}
     </>
   );
 }
