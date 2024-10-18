@@ -33,6 +33,7 @@ export function getUser(): User | null {
     return null;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { expiresAt, ...user } = storedUser;
   return user;
 }

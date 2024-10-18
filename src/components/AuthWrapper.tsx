@@ -16,7 +16,7 @@ import {
 import { testSalesperson, testManager } from '@/lib/testData';
 
 // 假设这是你的 Worker URL
-const WORKER_URL = 'localhost:3000';
+// const WORKER_URL = 'localhost:3000';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -64,7 +64,8 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
         throw new Error('Failed to set user info');
       }
     } catch (error) {
-      setError('获取用户信息失败，请重试。');
+      // setError('获取用户信息失败，请重试。');
+      setError(error as string);
     } finally {
       setIsLoading(false);
     }

@@ -101,7 +101,7 @@ export default function SalesForm() {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="w-full">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">录入新销售</CardTitle>
+            <CardTitle className="text-2xl font-bold">录入金额</CardTitle>
             <CardDescription className="text-sm sm:text-base">
               请输入您的成交金额，可添加多笔记录（最多10笔）
             </CardDescription>
