@@ -87,10 +87,10 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     );
   }
 
-  if (showTrackingInput) {
-    return (
-      <Dialog open={showTrackingInput} onOpenChange={setShowTrackingInput}>
-        <DialogContent>
+  return (
+    <>
+      <Dialog open={showTrackingInput} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>请输入您的 Tracking ID</DialogTitle>
             <DialogDescription>
@@ -109,16 +109,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>无法获取用户信息，请重新访问。</AlertDescription>
-      </Alert>
-    );
-  }
-
-  return <>{children}</>;
+      {user ? children : null}
+    </>
+  );
 }

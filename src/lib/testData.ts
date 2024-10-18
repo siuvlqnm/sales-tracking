@@ -63,11 +63,11 @@ export function generateTeamPerformance(): PerformanceData {
 export const testSalesperson: TestUser = {
   name: "张三",
   id: "S001",
-  role: "销售"
+  role: "salesperson"
 };
 
 export const testManager: TestUser = {
   name: "李四",
   id: "M001",
-  role: "店长"
+  role: "manager"
 };

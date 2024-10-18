@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AuthWrapper } from '@/components/AuthWrapper';
 import { 
   generateSalesRecords, 
   generatePerformanceData, 
@@ -129,12 +128,10 @@ function ManagerView() {
 export default function Home() {
   const user = getUser();
   return (
-    <AuthWrapper>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
       {user ? (
           user.role === 'manager' ? <ManagerView /> : <SalespersonView user={user} />
       ) : null}
       </div>
-    </AuthWrapper>
   );
 }

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthWrapper } from '@/components/AuthWrapper';
 import { getUser } from '@/lib/userManager';
 
 // 假设这是你的 Worker URL
@@ -97,7 +96,6 @@ export default function SalesForm() {
   };
 
   return (
-    <AuthWrapper>
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="w-full">
           <CardHeader>
@@ -165,6 +163,5 @@ export default function SalesForm() {
           </form>
         </Card>
       </div>
-    </AuthWrapper>
   );
 }
