@@ -8,9 +8,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getUser } from '@/lib/userManager';
 
-// 假设这是你的 Worker URL
-const WORKER_URL = 'localhost:3000';
-
 export default function SalesForm() {
   const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,7 +61,9 @@ export default function SalesForm() {
     }
 
     try {
-      const response = await fetch(`${WORKER_URL}/api/recordSales`, {
+      // const response = await fetch(`${WORKER_URL}/api/v1/form`, {
+        // const response = await fetch(`${WORKER_URL}/api/v1/recordSales`, {
+      const response = await fetch('/api/v1/form', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
