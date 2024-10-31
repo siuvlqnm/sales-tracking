@@ -13,10 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { testSalesperson, testManager } from '@/lib/testData';
-
-// 假设这是你的 Worker URL
-// const WORKER_URL = 'localhost:3000';
+import { authenticateUser } from '@/lib/api';
 
 interface AuthWrapperProps {
   children: React.ReactNode;
@@ -45,17 +42,11 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
     setError(null);
 
     try {
-      // 使用测试数据而不是发送 API 请求
-      let testUser;
-      if (trackingId === 'S001') {
-        testUser = testSalesperson;
-      } else if (trackingId === 'M001') {
-        testUser = testManager;
-      } else {
-        throw new Error('Invalid tracking ID');
-      }
-
-      setUserFromParams(new URLSearchParams(`userId=${testUser.id}&role=${testUser.role}&name=${testUser.name}`));
+      const user = await authenticateUser(trackingId);
+      setUserFromParams(new URLSearchParams(
+        `userId=${user.id}&role=${user.role}&name=${user.name}&storeId=${user.storeId}&storeName=${user.storeName}`
+      ));
+      
       const newUser = getUser();
       if (newUser) {
         setUser(newUser);
@@ -64,8 +55,7 @@ export function AuthWrapper({ children }: AuthWrapperProps) {
         throw new Error('Failed to set user info');
       }
     } catch (error) {
-      // setError('获取用户信息失败，请重试。');
-      setError(error as string);
+      setError(error instanceof Error ? error.message : '认证失败');
     } finally {
       setIsLoading(false);
     }

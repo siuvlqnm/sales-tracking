@@ -2,6 +2,8 @@ export type User = {
   id: string;
   role: 'salesperson' | 'manager';
   name: string;
+  storeId: string;
+  storeName: string;
 };
 
 const USER_KEY = 'sales_system_user';
@@ -47,7 +49,7 @@ export function setUserFromParams(params: URLSearchParams): void {
   const role = params.get('role');
   const name = params.get('name');
   if (userId && role) {
-    saveUser({ id: userId, role: role as 'salesperson' | 'manager', name: name || '' });
+    saveUser({ id: userId, role: role as 'salesperson' | 'manager', name: name || '', storeId: '', storeName: '' });
   }
 }
 

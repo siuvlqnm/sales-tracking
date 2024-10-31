@@ -1,4 +1,5 @@
 import { format, subDays } from 'date-fns';
+import { User } from './userManager';
 
 export interface SalesRecord {
   id: number;
@@ -60,14 +61,18 @@ export function generateTeamPerformance(): PerformanceData {
 }
 
 // 添加测试销售人员和店长信息
-export const testSalesperson: TestUser = {
-  name: "张三",
-  id: "S001",
-  role: "salesperson"
+export const testSalesperson: User = {
+  id: 'S001',
+  role: 'salesperson',
+  name: '测试销售员',
+  storeId: 'STORE001',
+  storeName: '测试门店1'
 };
 
-export const testManager: TestUser = {
-  name: "李四",
-  id: "M001",
-  role: "manager"
+export const testManager: User = {
+  id: 'M001',
+  role: 'manager',
+  name: '测试经理',
+  storeId: 'STORE001',
+  storeName: '测试门店1'
 };
