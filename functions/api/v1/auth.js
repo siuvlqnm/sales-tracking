@@ -14,7 +14,8 @@ export async function onRequest(context) {
     try {
       const { user_id } = await request.json();
       
-      const db = env.DB.salesTrackingDB;
+    //   const db = env.DB.salesTrackingDB;
+      const db = context.env.salesTrackingDB;
       const user = await db.prepare(`
         SELECT 
           u.user_id,
