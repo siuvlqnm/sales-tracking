@@ -44,7 +44,7 @@ export async function authenticateUser(trackingId: string): Promise<User> {
       storeId: data.store_id,
       storeName: data.store_name,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     throw new Error('获取用户信息失败，请重试。');
   }
 } 
