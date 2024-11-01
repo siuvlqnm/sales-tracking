@@ -1,30 +1,36 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  generateSalesRecords, 
-  generatePerformanceData, 
-  generateTopSalespeople, 
-  generateTeamPerformance,
-  SalesRecord,
-  PerformanceData,
-  Salesperson
-} from '@/lib/testData';
-import { useEffect, useState } from 'react';
 import { User, getUser } from '@/lib/userManager';
+import { getDashboardData, type DashboardData } from '@/lib/api';
 
 // 销售人员视图
 function SalespersonView({ user }: { user: User }) {
-  const [recentSales, setRecentSales] = useState<SalesRecord[]>([]);
-  const [performance, setPerformance] = useState<PerformanceData>({ monthlySales: 0, monthlyOrders: 0 });
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    setRecentSales(generateSalesRecords(5));
-    setPerformance(generatePerformanceData());
-  }, []);
+    async function fetchData() {
+      try {
+        const data = await getDashboardData({ userId: user.id });
+        setDashboardData(data);
+      } catch (err) {
+        setError('加载数据失败，请重试');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [user.id]);
+
+  if (loading) return <div>加载中...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
+  if (!dashboardData) return null;
 
   return (
     <div className="space-y-6">
@@ -34,8 +40,8 @@ function SalespersonView({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           <p>您的本月业绩：</p>
-          <p>销售额：¥{performance.monthlySales.toLocaleString()}</p>
-          <p>订单数：{performance.monthlyOrders}</p>
+          <p>销售额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
+          <p>订单数：{dashboardData.performance.monthlyOrders}</p>
         </CardContent>
       </Card>
 
@@ -59,9 +65,9 @@ function SalespersonView({ user }: { user: User }) {
         </CardHeader>
         <CardContent>
           <ul>
-            {recentSales.map((sale) => (
+            {dashboardData.recentSales.map((sale) => (
               <li key={sale.id} className="mb-2">
-                {sale.customer} - ¥{sale.amount} ({sale.date})
+                {sale.user_name} - ¥{sale.amount} ({sale.date})
               </li>
             ))}
           </ul>
@@ -72,14 +78,29 @@ function SalespersonView({ user }: { user: User }) {
 }
 
 // 店长视图
-function ManagerView() {
-  const [teamPerformance, setTeamPerformance] = useState<PerformanceData>({ monthlySales: 0, monthlyOrders: 0 });
-  const [topSalespeople, setTopSalespeople] = useState<Salesperson[]>([]);
+function ManagerView({ user }: { user: User }) {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    setTeamPerformance(generateTeamPerformance());
-    setTopSalespeople(generateTopSalespeople(5));
-  }, []);
+    async function fetchData() {
+      try {
+        const data = await getDashboardData({ storeId: user.storeId });
+        setDashboardData(data);
+      } catch (err) {
+        setError('加载数据失败，请重试');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [user.storeId]);
+
+  if (loading) return <div>加载中...</div>;
+  if (error) return <div className="text-red-500">{error}</div>;
+  if (!dashboardData) return null;
 
   return (
     <div className="space-y-6">
@@ -88,8 +109,8 @@ function ManagerView() {
           <CardTitle>团队业绩概览</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>本月销售额：¥{teamPerformance.monthlySales.toLocaleString()}</p>
-          <p>本月订单数：{teamPerformance.monthlyOrders}</p>
+          <p>本月销售额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
+          <p>本月订单数：{dashboardData.performance.monthlyOrders}</p>
         </CardContent>
       </Card>
 
@@ -113,7 +134,7 @@ function ManagerView() {
         </CardHeader>
         <CardContent>
           <ul>
-            {topSalespeople.map((person, index) => (
+            {dashboardData.topSalespeople.map((person, index) => (
               <li key={index} className="mb-2">
                 {person.name} - ¥{person.sales}
               </li>
@@ -130,7 +151,7 @@ export default function Home() {
   return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
       {user ? (
-          user.role === 'manager' ? <ManagerView /> : <SalespersonView user={user} />
+          user.role === 'manager' ? <ManagerView user={user} /> : <SalespersonView user={user} />
       ) : null}
       </div>
   );

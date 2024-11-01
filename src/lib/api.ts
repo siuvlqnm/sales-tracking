@@ -188,4 +188,51 @@ export async function getChartData(params: {
     console.error('获取图表数据过程中发生错误：', error);
     throw new Error('获取图表数据失败，请重试。');
   }
+}
+
+export interface DashboardData {
+  performance: {
+    monthlySales: number;
+    monthlyOrders: number;
+  };
+  recentSales: {
+    id: string;
+    user_name: string;
+    store_name: string;
+    amount: number;
+    date: string;
+  }[];
+  topSalespeople: {
+    name: string;
+    sales: number;
+  }[];
+}
+
+export async function getDashboardData(params: {
+  userId?: string;
+  storeId?: string;
+}): Promise<DashboardData> {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.userId) queryParams.set('user_id', params.userId);
+    if (params.storeId) queryParams.set('store_id', params.storeId);
+
+    const response = await fetch(
+      `/api/v1/dashboard?${queryParams.toString()}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '获取数据失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取仪表盘数据过程中发生错误：', error);
+    throw new Error('获取仪表盘数据失败，请重试。');
+  }
 } 
