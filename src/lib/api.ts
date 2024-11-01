@@ -163,12 +163,21 @@ export interface ChartData {
 export async function getChartData(params: {
   startDate: string;
   endDate: string;
+  userId?: string;
+  role?: string;
 }): Promise<ChartData> {
   try {
     const queryParams = new URLSearchParams({
       start_date: params.startDate,
       end_date: params.endDate,
     });
+    
+    if (params.userId) {
+      queryParams.set('user_id', params.userId);
+    }
+    if (params.role) {
+      queryParams.set('role', params.role);
+    }
 
     const response = await fetch(
       `/api/v1/sales/charts?${queryParams.toString()}`,

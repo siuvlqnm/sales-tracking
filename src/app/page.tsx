@@ -53,7 +53,7 @@ function SalespersonView({ user }: { user: User }) {
           <Link href="/sales-form">
             <Button className="w-full">录入新销售</Button>
           </Link>
-          <Link href="/my-sales-records">
+          <Link href="/sales-records">
             <Button className="w-full">我的销售记录</Button>
           </Link>
         </CardContent>
