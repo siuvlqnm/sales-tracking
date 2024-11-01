@@ -37,7 +37,9 @@ export default function SalesForm() {
     setAmounts(newAmounts);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     const user = getUser();
     if (!user) {
       setSubmitStatus({
