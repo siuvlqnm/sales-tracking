@@ -58,7 +58,7 @@ export async function onRequest(context) {
 
       query += ' ORDER BY sr.submission_time DESC';
 
-      const db = env.DB.salesTrackingDB;
+      const db = context.env.salesTrackingDB;
       const records = await db.prepare(query).bind(...params).all();
 
       return new Response(JSON.stringify(records.results), {
