@@ -1,5 +1,6 @@
 export async function onRequest(context) {
   const { request, env } = context;
+  
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -32,25 +33,29 @@ export async function onRequest(context) {
         JOIN stores s ON sr.store_id = s.store_id
         WHERE 1=1
       `;
-      
+
       const params = [];
+
       if (user_id) {
         query += ' AND sr.user_id = ?';
         params.push(user_id);
       }
+
       if (store_id) {
         query += ' AND sr.store_id = ?';
         params.push(store_id);
       }
+
       if (start_date) {
-        query += ' AND sr.submission_time >= ?';
+        query += ' AND DATE(sr.submission_time) >= DATE(?)';
         params.push(start_date);
       }
+
       if (end_date) {
-        query += ' AND sr.submission_time <= ?';
+        query += ' AND DATE(sr.submission_time) <= DATE(?)';
         params.push(end_date);
       }
-      
+
       query += ' ORDER BY sr.submission_time DESC';
 
       const db = env.DB.salesTrackingDB;
@@ -61,14 +66,16 @@ export async function onRequest(context) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (error) {
-      return new Response(JSON.stringify({ message: error.message }), {
+      return new Response(JSON.stringify({ 
+        message: error.message || 'Internal Server Error' 
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
   }
 
-  return new Response('Method not allowed', {
+  return new Response('Method Not Allowed', {
     status: 405,
     headers: corsHeaders
   });

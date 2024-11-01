@@ -11,11 +11,9 @@ interface AuthResponse {
   store_name: string;
 }
 
-interface SalesRecord {
-  id: number;
-  user_id: string;
+export type SalesRecord = {
+  id: string;
   user_name: string;
-  store_id: string;
   store_name: string;
   actual_amount: number;
   submission_time: string;
@@ -23,12 +21,6 @@ interface SalesRecord {
 
 // 认证用户
 export async function authenticateUser(trackingId: string): Promise<User> {
-//   if (config.apiMode === 'test') {
-//     if (trackingId === 'S001') return testSalesperson;
-//     if (trackingId === 'M001') return testManager;
-//     throw new Error('无效的 Tracking ID');
-//   }
-
   try {
     const response = await fetch(`/api/v1/auth`, {
       method: 'POST',
@@ -92,20 +84,6 @@ export async function querySalesRecords(params: {
   startDate?: string;
   endDate?: string;
 }): Promise<SalesRecord[]> {
-//   if (config.apiMode === 'test') {
-//     return [
-//       {
-//         id: 1,
-//         user_id: 'S001',
-//         user_name: '测试销售员',
-//         store_id: 'STORE001',
-//         store_name: '测试门店1',
-//         actual_amount: 1000,
-//         submission_time: new Date().toISOString(),
-//       },
-//       // 更多测试数据...
-//     ];
-//   }
 
   try {
     const queryParams = new URLSearchParams();
@@ -148,20 +126,6 @@ export async function getSalesStatistics(params: {
     count: number;
   }>;
 }> {
-//   if (config.apiMode === 'test') {
-//     return {
-//       totalAmount: 10000,
-//       recordCount: 5,
-//       dailyStats: [
-//         {
-//           date: new Date().toISOString().split('T')[0],
-//           amount: 2000,
-//           count: 1,
-//         },
-//         // 更多测试数据...
-//       ],
-//     };
-//   }
 
   try {
     const queryParams = new URLSearchParams({
