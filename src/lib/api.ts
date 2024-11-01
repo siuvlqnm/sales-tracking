@@ -58,20 +58,20 @@ export async function submitSalesRecords(
   storeId: string,
   amounts: number[]
 ): Promise<void> {
-//   if (config.apiMode === 'test') {
-//     console.log('Test mode: Submitting sales records', { userId, storeId, amounts });
-//     return;
-//   }
-
   try {
-    const response = await fetch(`/api/v1/sales`, {
+    // 获取北京时间
+    const now = new Date();
+    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const timestamp = beijingTime.toISOString();
+
+    const response = await fetch(`/api/v1/sales/form`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: userId,
         store_id: storeId,
-        actual_amount: amounts.reduce((sum, amount) => sum + amount, 0),
-        timestamp: new Date().toISOString(),
+        amounts: amounts,
+        timestamp: timestamp
       }),
     });
 
