@@ -152,4 +152,40 @@ export async function getSalesStatistics(params: {
     console.error('获取销售统计过程中发生错误：', error);
     throw new Error('获取销售统计失败，请重试。');
   }
+}
+
+export interface ChartData {
+  dailySales: { date: string; total: number }[];
+  topSalespeople: { name: string; total: number }[];
+  storePerformance: { name: string; total: number }[];
+}
+
+export async function getChartData(params: {
+  startDate: string;
+  endDate: string;
+}): Promise<ChartData> {
+  try {
+    const queryParams = new URLSearchParams({
+      start_date: params.startDate,
+      end_date: params.endDate,
+    });
+
+    const response = await fetch(
+      `/api/v1/sales/charts?${queryParams.toString()}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '获取图表数据失败');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('获取图表数据过程中发生错误：', error);
+    throw new Error('获取图表数据失败，请重试。');
+  }
 } 
