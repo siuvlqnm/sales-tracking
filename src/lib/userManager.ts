@@ -48,8 +48,10 @@ export function setUserFromParams(params: URLSearchParams): void {
   const userId = params.get('userId');
   const role = params.get('role');
   const name = params.get('name');
+  const storeId = params.get('storeId');
+  const storeName = params.get('storeName');
   if (userId && role) {
-    saveUser({ id: userId, role: role as 'salesperson' | 'manager', name: name || '', storeId: '', storeName: '' });
+    saveUser({ id: userId, role: role as 'salesperson' | 'manager', name: name || '', storeId: storeId || '', storeName: storeName || '' });
   }
 }
 
