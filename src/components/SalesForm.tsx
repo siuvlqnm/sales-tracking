@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getUser } from '@/lib/userManager';
+import { submitSalesRecords } from '@/lib/api';
 
 export default function SalesForm() {
   const [amounts, setAmounts] = useState(['']);
@@ -36,8 +37,7 @@ export default function SalesForm() {
     setAmounts(newAmounts);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     const user = getUser();
     if (!user) {
       setSubmitStatus({
@@ -61,30 +61,13 @@ export default function SalesForm() {
     }
 
     try {
-      // const response = await fetch(`${WORKER_URL}/api/v1/form`, {
-        // const response = await fetch(`${WORKER_URL}/api/v1/recordSales`, {
-      const response = await fetch('/api/v1/form', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          salesperson_id: user.id,
-          amounts: validAmounts,
-          timestamp: new Date().toISOString(),
-        })
-      });
-
-      const data = await response.json();
-      
-      if (!response.ok) throw new Error(data.message || '提交失败');
-
+      await submitSalesRecords(user.id, user.storeId, validAmounts);
       setSubmitStatus({ 
         success: true, 
-        message: `提交成功！${data.message}。` 
+        message: `提交成功！` 
       });
       setAmounts(['']);
-    } catch (error: unknown) {
+    } catch (error) {
       setSubmitStatus({ 
         success: false, 
         message: error instanceof Error ? error.message : '提交失败，请重试。' 
