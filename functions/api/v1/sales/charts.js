@@ -53,18 +53,17 @@ export async function onRequest(context) {
         .bind(start_date, end_date)
         .all();
 
-      // 3. 获取门店销售数据
-      const storePerformanceQuery = `
+      // 3. 修改为获取商品销售数据（按金额分组统计笔数）
+      const productPerformanceQuery = `
         SELECT 
-          s.store_name as name,
-          SUM(sr.actual_amount) as total
-        FROM sales_records sr
-        JOIN stores s ON sr.store_id = s.store_id
-        WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
-        GROUP BY s.store_name
-        ORDER BY total DESC
+          actual_amount as amount,
+          COUNT(*) as count
+        FROM sales_records
+        WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        GROUP BY actual_amount
+        ORDER BY count DESC
       `;
-      const storePerformance = await db.prepare(storePerformanceQuery)
+      const productPerformance = await db.prepare(productPerformanceQuery)
         .bind(start_date, end_date)
         .all();
 
@@ -77,9 +76,9 @@ export async function onRequest(context) {
           name: row.name,
           total: Number(row.total)
         })),
-        storePerformance: storePerformance.results.map(row => ({
-          name: row.name,
-          total: Number(row.total)
+        productPerformance: productPerformance.results.map(row => ({
+          amount: Number(row.amount),
+          count: Number(row.count)
         }))
       };
 

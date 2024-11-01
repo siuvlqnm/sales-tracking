@@ -157,7 +157,7 @@ export async function getSalesStatistics(params: {
 export interface ChartData {
   dailySales: { date: string; total: number }[];
   topSalespeople: { name: string; total: number }[];
-  storePerformance: { name: string; total: number }[];
+  productPerformance: { amount: number; count: number }[];
 }
 
 export async function getChartData(params: {

@@ -43,7 +43,7 @@ export default function SalesCharts() {
   if (!salesData) return null;
 
   const maxSalespersonTotal = Math.max(...salesData.topSalespeople.map(s => s.total));
-  const maxStoreTotal = Math.max(...salesData.storePerformance.map(s => s.total));
+  const maxProductCount = Math.max(...salesData.productPerformance.map(p => p.count));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -96,17 +96,17 @@ export default function SalesCharts() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>门店销售占比</CardTitle>
+            <CardTitle>商品销售占比</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {salesData.storePerformance.map((store, index) => (
+              {salesData.productPerformance.map((product, index) => (
                 <li key={index}>
                   <div className="flex justify-between items-center mb-1">
-                    <span>{store.name}</span>
-                    <span>¥{store.total.toFixed(2)}</span>
+                    <span>¥{product.amount.toFixed(2)}</span>
+                    <span>{product.count} 笔</span>
                   </div>
-                  <Progress value={(store.total / maxStoreTotal) * 100} />
+                  <Progress value={(product.count / maxProductCount) * 100} />
                 </li>
               ))}
             </ul>
