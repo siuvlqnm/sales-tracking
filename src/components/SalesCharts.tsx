@@ -1,15 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-// import { useSession } from 'next-auth/react';
 import { format, subDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { getChartData, type ChartData } from '@/lib/api';
+import { getUser } from '@/lib/userManager';
 
 export default function SalesCharts() {
-//   const { data: session } = useSession();
+  const user = getUser();
   const [timeRange, setTimeRange] = useState('7');
   const [salesData, setSalesData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,8 @@ export default function SalesCharts() {
       const data = await getChartData({
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd'),
+        userId: user?.role === 'salesperson' ? user.id : undefined,
+        role: user?.role
       });
       setSalesData(data);
     } catch (err) {
@@ -32,7 +34,7 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange]);
+  }, [timeRange, user]);
 
   useEffect(() => {
     fetchChartData();
@@ -42,7 +44,7 @@ export default function SalesCharts() {
   if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
   if (!salesData) return null;
 
-  const maxSalespersonTotal = Math.max(...salesData.topSalespeople.map(s => s.total));
+  const maxSalespersonTotal = Math.max(...(salesData.topSalespeople?.map(s => s.total) || [0]));
   const maxProductCount = Math.max(...salesData.productPerformance.map(p => p.count));
 
   return (
@@ -76,24 +78,29 @@ export default function SalesCharts() {
             </ul>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>销售人员业绩排名</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {salesData.topSalespeople.map((person, index) => (
-                <li key={index}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span>{person.name}</span>
-                    <span>¥{person.total.toFixed(2)}</span>
-                  </div>
-                  <Progress value={(person.total / maxSalespersonTotal) * 100} />
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+        
+        {/* 只有管理员才能看到销售人员排名 */}
+        {user?.role === 'manager' && salesData.topSalespeople && (
+          <Card>
+            <CardHeader>
+              <CardTitle>销售人员业绩排名</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {salesData.topSalespeople.map((person, index) => (
+                  <li key={index}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span>{person.name}</span>
+                      <span>¥{person.total.toFixed(2)}</span>
+                    </div>
+                    <Progress value={(person.total / maxSalespersonTotal) * 100} />
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>商品销售占比</CardTitle>
