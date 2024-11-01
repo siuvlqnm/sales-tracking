@@ -14,7 +14,7 @@ export async function onRequest(context) {
     try {
       const { user_id, store_id, actual_amount } = await request.json();
       
-      const db = env.DB.salesTrackingDB;
+      const db = context.env.salesTrackingDB;
       // 验证用户权限
       const userRole = await db.prepare(`
         SELECT role_id FROM user_role 
