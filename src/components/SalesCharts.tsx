@@ -15,6 +15,9 @@ export default function SalesCharts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const userId = user?.id;
+  const userRole = user?.role;
+
   const fetchChartData = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -24,8 +27,8 @@ export default function SalesCharts() {
       const data = await getChartData({
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd'),
-        userId: user?.role === 'salesperson' ? user.id : undefined,
-        role: user?.role
+        userId: userRole === 'salesperson' ? userId : undefined,
+        role: userRole
       });
       setSalesData(data);
     } catch (err) {
@@ -34,11 +37,11 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, user]);
+  }, [timeRange, userId, userRole]);
 
   useEffect(() => {
     fetchChartData();
-  }, [timeRange, fetchChartData]);
+  }, [fetchChartData]);
 
   if (loading) return <div className="text-center py-10">加载中...</div>;
   if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
