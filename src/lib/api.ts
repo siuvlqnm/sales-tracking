@@ -218,7 +218,7 @@ export async function getDashboardData(params: {
     if (params.storeId) queryParams.set('store_id', params.storeId);
 
     const response = await fetch(
-      `/api/v1/dashboard?${queryParams.toString()}`,
+      `/api/v1/sales/dashboard?${queryParams.toString()}`,
       {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
