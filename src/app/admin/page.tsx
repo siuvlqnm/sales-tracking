@@ -36,28 +36,24 @@ export default function AdminPage() {
     }
   }, [router]);
 
-  // 如果正在加载，显示空白或加载指示器
-  if (isLoading) {
-    return null; // 或者返回一个加载指示器组件
-  }
-
   // 加载数据
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [storesData, usersData] = await Promise.all([
-          getStores(),
-          getUsers()
-        ]);
-        setStores(storesData);
-        setUsers(usersData);
-      } catch (error) {
-        console.error('加载数据失败:', error);
-      }
-    };
-
-    fetchData();
-  }, [refreshKey]);
+    if (!isLoading) {  // 只在认证完成后加载数据
+      const fetchData = async () => {
+        try {
+          const [storesData, usersData] = await Promise.all([
+            getStores(),
+            getUsers()
+          ]);
+          setStores(storesData);
+          setUsers(usersData);
+        } catch (error) {
+          console.error('加载数据失败:', error);
+        }
+      };
+      fetchData();
+    }
+  }, [refreshKey, isLoading]);  // 添加 isLoading 作为依赖
 
   // 刷新数据
   const refreshData = () => {
@@ -114,6 +110,16 @@ export default function AdminPage() {
     }
   };
 
+  // 如果正在加载，显示加载指示器
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  // 渲染主要内容
   return (
     <>
       <div className="container mx-auto px-4 py-8">
