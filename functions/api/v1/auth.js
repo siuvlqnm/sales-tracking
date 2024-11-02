@@ -14,7 +14,6 @@ export async function onRequest(context) {
     try {
       const { user_id } = await request.json();
       
-    //   const db = env.DB.salesTrackingDB;
       const db = context.env.salesTrackingDB;
       const user = await db.prepare(`
         SELECT 
@@ -24,7 +23,7 @@ export async function onRequest(context) {
           ur.role_id,
           s.store_name
         FROM users u
-        JOIN user_role ur ON u.user_id = ur.user_id
+        JOIN user_roles ur ON u.user_id = ur.user_id
         JOIN stores s ON ur.store_id = s.store_id
         WHERE u.user_id = ?
       `).bind(user_id).first();
