@@ -1,50 +1,45 @@
 class Snowflake {
   private static instance: Snowflake;
   
-  private sequence: number = 0;
-  private lastTimestamp: number = -1;
+  private sequence: bigint = BigInt(0);
+  private lastTimestamp: bigint = BigInt(-1);
   
   // 开始时间戳 (2024-01-01)
-  private readonly twepoch: number = 1704067200000;
+  private readonly twepoch: bigint = BigInt(1704067200000);
   
-  // 机器ID所占位数
-  private readonly workerIdBits: number = 5;
-  // 数据中心ID所占位数
-  private readonly datacenterIdBits: number = 5;
-  // 序列号所占位数
-  private readonly sequenceBits: number = 12;
+  // 各部分占位数
+  private readonly workerIdBits: bigint = BigInt(5);
+  private readonly datacenterIdBits: bigint = BigInt(5);
+  private readonly sequenceBits: bigint = BigInt(12);
   
-  // 机器ID最大值
-  private readonly maxWorkerId: number = -1 ^ (-1 << this.workerIdBits);
-  // 数据中心ID最大值
-  private readonly maxDatacenterId: number = -1 ^ (-1 << this.datacenterIdBits);
+  // 最大值
+  private readonly maxWorkerId: bigint = BigInt(31);  // 2^5-1
+  private readonly maxDatacenterId: bigint = BigInt(31);  // 2^5-1
   
-  // 机器ID向左移12位
-  private readonly workerIdShift: number = this.sequenceBits;
-  // 数据中心ID向左移17位
-  private readonly datacenterIdShift: number = this.sequenceBits + this.workerIdBits;
-  // 时间戳向左移22位
-  private readonly timestampLeftShift: number = this.sequenceBits + this.workerIdBits + this.datacenterIdBits;
+  // 偏移量
+  private readonly workerIdShift: bigint = this.sequenceBits;
+  private readonly datacenterIdShift: bigint = this.sequenceBits + this.workerIdBits;
+  private readonly timestampLeftShift: bigint = this.sequenceBits + this.workerIdBits + this.datacenterIdBits;
   
-  // 序列号掩码
-  private readonly sequenceMask: number = -1 ^ (-1 << this.sequenceBits);
+  // 序列号掩码 4095 (0xFFF)
+  private readonly sequenceMask: bigint = BigInt(4095);
   
-  // 工作机器ID
-  private readonly workerId: number;
-  // 数据中心ID
-  private readonly datacenterId: number;
+  private readonly workerId: bigint;
+  private readonly datacenterId: bigint;
   
   private constructor(workerId: number = 1, datacenterId: number = 1) {
-    // 检查参数是否合法
-    if (workerId > this.maxWorkerId || workerId < 0) {
+    const workerIdBig = BigInt(workerId);
+    const datacenterIdBig = BigInt(datacenterId);
+    
+    if (workerIdBig > this.maxWorkerId || workerIdBig < BigInt(0)) {
       throw new Error(`workerId can't be greater than ${this.maxWorkerId} or less than 0`);
     }
-    if (datacenterId > this.maxDatacenterId || datacenterId < 0) {
+    if (datacenterIdBig > this.maxDatacenterId || datacenterIdBig < BigInt(0)) {
       throw new Error(`datacenterId can't be greater than ${this.maxDatacenterId} or less than 0`);
     }
     
-    this.workerId = workerId;
-    this.datacenterId = datacenterId;
+    this.workerId = workerIdBig;
+    this.datacenterId = datacenterIdBig;
   }
   
   public static getInstance(): Snowflake {
@@ -54,7 +49,7 @@ class Snowflake {
     return Snowflake.instance;
   }
   
-  private tilNextMillis(lastTimestamp: number): number {
+  private tilNextMillis(lastTimestamp: bigint): bigint {
     let timestamp = this.timeGen();
     while (timestamp <= lastTimestamp) {
       timestamp = this.timeGen();
@@ -62,40 +57,34 @@ class Snowflake {
     return timestamp;
   }
   
-  private timeGen(): number {
-    return Date.now();
+  private timeGen(): bigint {
+    return BigInt(Date.now());
   }
   
   public nextId(): string {
     let timestamp = this.timeGen();
     
-    // 如果当前时间小于上一次ID生成的时间戳，说明系统时钟回退过
     if (timestamp < this.lastTimestamp) {
       throw new Error('Clock moved backwards. Refusing to generate id');
     }
     
-    // 如果是同一时间生成的，则进行毫秒内序列
     if (timestamp === this.lastTimestamp) {
-      this.sequence = (this.sequence + 1) & this.sequenceMask;
-      // 毫秒内序列溢出
-      if (this.sequence === 0) {
-        // 阻塞到下一个毫秒，获得新的时间戳
+      this.sequence = (this.sequence + BigInt(1)) & this.sequenceMask;
+      if (this.sequence === BigInt(0)) {
         timestamp = this.tilNextMillis(this.lastTimestamp);
       }
     } else {
-      // 时间戳改变，毫秒内序列重置
-      this.sequence = 0;
+      this.sequence = BigInt(0);
     }
     
-    // 上次生成ID的时间戳
     this.lastTimestamp = timestamp;
     
-    // 移位并通过或运算拼到一起组成64位的ID
     const id = ((timestamp - this.twepoch) << this.timestampLeftShift) |
                (this.datacenterId << this.datacenterIdShift) |
                (this.workerId << this.workerIdShift) |
                this.sequence;
     
+    // 确保返回正数字符串
     return id.toString();
   }
 }
