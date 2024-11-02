@@ -80,18 +80,44 @@ export async function onRequest(context) {
         });
       }
 
-      // 检查是否已经存在角色分配
+      // 检查用户在所有门店的角色，确保不能同时是销售和店长
+      const userRoles = await db.prepare(`
+        SELECT role_id 
+        FROM user_roles 
+        WHERE user_id = ?
+      `).bind(user_id).all();
+
+      // 检查现有角色
+      const existingRoles = userRoles.results.map(r => r.role_id);
+      
+      // 如果要设置为店长(role_id = 1)，检查是否已有销售角色
+      if (role_id === 1 && existingRoles.includes(2)) {
+        return new Response(JSON.stringify({ message: '该员工已是销售人员，不能设置为店长' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // 如果要设置为销售(role_id = 2)，检查是否已有店长角色
+      if (role_id === 2 && existingRoles.includes(1)) {
+        return new Response(JSON.stringify({ message: '该员工已是店长，不能设置为销售人员' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 检查是否已经存在相同的角色分配
       const existingRole = await db.prepare(
-        'SELECT id FROM user_roles WHERE user_id = ?'
-      ).bind(user_id).first();
+        'SELECT id FROM user_roles WHERE user_id = ? AND store_id = ?'
+      ).bind(user_id, store_id).first();
 
       if (existingRole) {
         // 更新现有角色
         await db.prepare(`
           UPDATE user_roles 
-          SET store_id = ?, role_id = ? 
-          WHERE user_id = ?
-        `).bind(store_id, role_id, user_id).run();
+          SET role_id = ? 
+          WHERE user_id = ? AND store_id = ?
+        `).bind(role_id, user_id, store_id).run();
       } else {
         // 添加新角色
         await db.prepare(`
@@ -100,14 +126,15 @@ export async function onRequest(context) {
         `).bind(user_id, store_id, role_id).run();
       }
 
-      // 获取更新后的角色信息
-      const updatedRole = await db.prepare(`
+      // 获取更新后的所有角色信息
+      const updatedRoles = await db.prepare(`
         SELECT id, user_id, store_id, role_id, created_at 
         FROM user_roles 
         WHERE user_id = ?
-      `).bind(user_id).first();
+        ORDER BY created_at DESC
+      `).bind(user_id).all();
 
-      return new Response(JSON.stringify(updatedRole), {
+      return new Response(JSON.stringify(updatedRoles.results), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
