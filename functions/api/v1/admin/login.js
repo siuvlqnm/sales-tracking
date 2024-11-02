@@ -1,5 +1,3 @@
-import { SignJWT } from 'https://esm.sh/jose@4.14.4';
-
 export async function onRequest(context) {
   const { request, env } = context;
   
@@ -29,7 +27,7 @@ export async function onRequest(context) {
 
       const db = env.salesTrackingDB;
 
-      // 密码加盐哈希
+      // 密码哈希
       const encoder = new TextEncoder();
       const data = encoder.encode(password + env.ADMIN_SALT);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -51,15 +49,31 @@ export async function onRequest(context) {
         });
       }
 
-      // 生成 JWT token
-      const token = await new SignJWT({ 
+      // JWT 签名
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({
         id: admin.id,
         username: admin.username,
-        role: 'admin'
-      })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setExpirationTime('24h')
-        .sign(encoder.encode(env.JWT_SECRET));
+        role: 'admin',
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24小时后过期
+      }));
+      
+      const message = `${header}.${payload}`;
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(env.JWT_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      
+      const signature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(message)
+      );
+      
+      const token = `${message}.${btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '')}`;
 
       // 更新数据库中的 token
       await db.prepare(`
