@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getUser } from '@/lib/userManager';
+import { getUser } from '@/lib/cookieUtils';
 import { submitSalesRecords } from '@/lib/api';
 
 export default function SalesForm() {

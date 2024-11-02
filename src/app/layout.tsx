@@ -1,9 +1,7 @@
 import '@/app/globals.css'
 import type { Metadata } from 'next'
-// import { Inter } from 'next/font/google'
+import { RouteGuard } from '@/components/RouteGuard'
 import Navbar from '@/components/Navbar'
-import { AuthWrapper } from '@/components/AuthWrapper'; 
-// const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: '销售系统',
@@ -18,10 +16,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <RouteGuard>
           <Navbar />
-          <AuthWrapper>
-            {children}
-          </AuthWrapper>
+          {children}
+        </RouteGuard>
       </body>
     </html>
   )

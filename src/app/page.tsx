@@ -4,8 +4,8 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { User, getUser } from '@/lib/userManager';
 import { getDashboardData, type DashboardData } from '@/lib/api';
+import type { User } from '@/lib/types';
 
 // 销售人员视图
 function SalespersonView({ user }: { user: User }) {
@@ -147,12 +147,27 @@ function ManagerView({ user }: { user: User }) {
 }
 
 export default function Home() {
-  const user = getUser();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const getCookieUser = () => {
+      const userCookie = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('user='));
+      if (userCookie) {
+        return JSON.parse(userCookie.split('=')[1]);
+      }
+      return null;
+    };
+
+    setUser(getCookieUser());
+  }, []);
+
   return (
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
       {user ? (
-          user.role === 'manager' ? <ManagerView user={user} /> : <SalespersonView user={user} />
+        user.role === 'manager' ? <ManagerView user={user} /> : <SalespersonView user={user} />
       ) : null}
-      </div>
+    </div>
   );
 }

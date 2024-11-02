@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { getChartData, type ChartData } from '@/lib/api';
-import { getUser } from '@/lib/userManager';
+import { getUser } from '@/lib/cookieUtils';
 
 export default function SalesCharts() {
   const user = getUser();

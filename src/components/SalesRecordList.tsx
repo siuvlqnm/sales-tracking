@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { getUser } from '@/lib/userManager';
+import { getUser } from '@/lib/cookieUtils';
 import { querySalesRecords } from '@/lib/api';
 import type { SalesRecord } from '@/lib/api';
 

@@ -1,4 +1,4 @@
-import { User } from './userManager';
+import type { User } from './cookieUtils';
 // import { config } from './config';
 // import { testSalesperson, testManager } from './testData';
 
