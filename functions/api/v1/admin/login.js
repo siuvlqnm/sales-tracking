@@ -1,5 +1,4 @@
-import { createHash } from 'crypto';
-import { sign } from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -31,9 +30,12 @@ export async function onRequest(context) {
       const db = env.salesTrackingDB;
 
       // 密码加盐哈希
-      const hashedPassword = createHash('sha256')
-        .update(password + env.ADMIN_SALT)
-        .digest('hex');
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password + env.ADMIN_SALT);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashedPassword = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
 
       // 查询管理员
       const admin = await db.prepare(
@@ -50,15 +52,14 @@ export async function onRequest(context) {
       }
 
       // 生成 JWT token
-      const token = sign(
-        { 
-          id: admin.id,
-          username: admin.username,
-          role: 'admin'
-        },
-        env.JWT_SECRET,
-        { expiresIn: '24h' }
-      );
+      const token = await new SignJWT({ 
+        id: admin.id,
+        username: admin.username,
+        role: 'admin'
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setExpirationTime('24h')
+        .sign(encoder.encode(env.JWT_SECRET));
 
       // 更新数据库中的 token
       await db.prepare(`
