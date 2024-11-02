@@ -1,4 +1,4 @@
-import { SignJWT } from 'jose';
+import { SignJWT } from 'https://esm.sh/jose@4.14.4';
 
 export async function onRequest(context) {
   const { request, env } = context;
