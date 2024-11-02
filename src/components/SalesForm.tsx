@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { getUser } from '@/lib/cookieUtils';
 import { submitSalesRecords } from '@/lib/api';
+import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesForm() {
   const [amounts, setAmounts] = useState(['']);
@@ -23,6 +24,17 @@ export default function SalesForm() {
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
+  const [selectedStoreId, setSelectedStoreId] = useState('');
+
+  const user = getUser();
+  const hasMultipleStores = user?.storeIds && user.storeIds.length > 1;
+
+  // 如果只有一家店，在组件挂载时自动设置 selectedStoreId
+  useEffect(() => {
+    if (user?.storeIds && user.storeIds.length === 1) {
+      setSelectedStoreId(user.storeIds[0]);
+    }
+  }, [user?.storeIds]);
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
@@ -80,7 +92,8 @@ export default function SalesForm() {
     setSubmitStatus({ success: false, message: '' });
 
     try {
-      await submitSalesRecords(user.id, user.storeId, validAmounts);
+      const storeId = selectedStoreId === 'all' ? user.storeIds[0] : selectedStoreId;
+      await submitSalesRecords(user.id, storeId, validAmounts);
       setSubmitStatus({ 
         success: true, 
         message: `提交成功！` 
@@ -108,6 +121,13 @@ export default function SalesForm() {
         </CardHeader>
         <form onSubmit={handleFormSubmit}>
           <CardContent className="space-y-3">
+            {hasMultipleStores && (
+              <StoreSelector 
+                value={selectedStoreId}
+                onChange={setSelectedStoreId}
+                className="w-full"
+              />
+            )}
             {amounts.map((amount, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <Input

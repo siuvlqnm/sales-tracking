@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { getChartData, type ChartData } from '@/lib/api';
 import { getUser } from '@/lib/cookieUtils';
+import { Loader2 } from "lucide-react";
+import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesCharts() {
   const user = getUser();
@@ -14,22 +16,30 @@ export default function SalesCharts() {
   const [salesData, setSalesData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const userId = user?.id;
-  const userRole = user?.role;
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    // 如果用户只有一个门店，默认选择该门店，否则默认选择 'all'
+    user?.storeIds.length === 1 ? user.storeIds[0] : 'all'
+  );
 
   const fetchChartData = useCallback(async () => {
+    if (!user) return;
+    
     setLoading(true);
     setError('');
+    
     try {
       const endDate = new Date();
       const startDate = subDays(endDate, parseInt(timeRange));
-      const data = await getChartData({
+      
+      const params = {
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd'),
-        userId: userRole === 'salesperson' ? userId : undefined,
-        role: userRole
-      });
+        userId: user.role === 'salesperson' ? user.id : undefined,
+        role: user.role,
+        storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
+      };
+
+      const data = await getChartData(params);
       setSalesData(data);
     } catch (err) {
       setError('加载图表数据失败，请重试。');
@@ -37,15 +47,33 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, userId, userRole]);
+  }, [timeRange, user, selectedStoreId]);
 
   useEffect(() => {
-    fetchChartData();
-  }, [fetchChartData]);
+    if (user) {
+      fetchChartData();
+    }
+  }, [fetchChartData, user]);
 
-  if (loading) return <div className="text-center py-10">加载中...</div>;
-  if (error) return <div className="text-center py-10 text-red-500">{error}</div>;
-  if (!salesData) return null;
+  if (!user) {
+    return <div className="text-center py-10">请先登录</div>;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div className="text-center py-10 text-red-500">{error}</div>;
+  }
+
+  if (!salesData) {
+    return <div className="text-center py-10 text-gray-500">暂无数据</div>;
+  }
 
   const maxSalespersonTotal = Math.max(...(salesData.topSalespeople?.map(s => s.total) || [0]));
   const maxProductCount = Math.max(...salesData.productPerformance.map(p => p.count));
@@ -53,7 +81,8 @@ export default function SalesCharts() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">成交数据分析</h1>
-      <div className="mb-6">
+      
+      <div className="flex flex-wrap gap-4 mb-6">
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="选择时间范围" />
@@ -64,62 +93,98 @@ export default function SalesCharts() {
             <SelectItem value="90">过去90天</SelectItem>
           </SelectContent>
         </Select>
+
+        <StoreSelector 
+          value={selectedStoreId}
+          onChange={setSelectedStoreId}
+          className="w-[180px]"
+        />
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 每日成交额卡片 */}
         <Card>
           <CardHeader>
             <CardTitle>每日成交额</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {salesData.dailySales.map((day, index) => (
-                <li key={index} className="flex justify-between items-center">
-                  <span>{day.date}</span>
-                  <span>¥{day.total.toFixed(2)}</span>
-                </li>
-              ))}
-            </ul>
+            {salesData.dailySales.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">暂无数据</div>
+            ) : (
+              <ul className="space-y-2">
+                {salesData.dailySales.map((day, index) => (
+                  <li key={index} className="flex justify-between items-center">
+                    <span>{day.date}</span>
+                    <span>¥{day.total.toLocaleString('zh-CN', { 
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2 
+                    })}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
-        
-        {/* 只有管理员才能看到销售人员排名 */}
-        {user?.role === 'manager' && salesData.topSalespeople && (
+
+        {/* 销售人员排名卡片 - 仅管理员可见 */}
+        {user.role === 'manager' && salesData.topSalespeople && (
           <Card>
             <CardHeader>
               <CardTitle>老师业绩排名</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
-                {salesData.topSalespeople.map((person, index) => (
-                  <li key={index}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span>{person.name}</span>
-                      <span>¥{person.total.toFixed(2)}</span>
-                    </div>
-                    <Progress value={(person.total / maxSalespersonTotal) * 100} />
-                  </li>
-                ))}
-              </ul>
+              {salesData.topSalespeople.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">暂无数据</div>
+              ) : (
+                <ul className="space-y-4">
+                  {salesData.topSalespeople.map((person, index) => (
+                    <li key={index}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span>{person.name}</span>
+                        <span>¥{person.total.toLocaleString('zh-CN', { 
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2 
+                        })}</span>
+                      </div>
+                      <Progress 
+                        value={(person.total / maxSalespersonTotal) * 100} 
+                        className="h-2"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         )}
 
+        {/* 商品销售占比卡片 */}
         <Card>
           <CardHeader>
             <CardTitle>商品销售占比</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {salesData.productPerformance.map((product, index) => (
-                <li key={index}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span>¥{product.amount.toFixed(2)}</span>
-                    <span>{product.count} 笔</span>
-                  </div>
-                  <Progress value={(product.count / maxProductCount) * 100} />
-                </li>
-              ))}
-            </ul>
+            {salesData.productPerformance.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">暂无数据</div>
+            ) : (
+              <ul className="space-y-4">
+                {salesData.productPerformance.map((product, index) => (
+                  <li key={index}>
+                    <div className="flex justify-between items-center mb-1">
+                      <span>¥{product.amount.toLocaleString('zh-CN', { 
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2 
+                      })}</span>
+                      <span>{product.count} 笔</span>
+                    </div>
+                    <Progress 
+                      value={(product.count / maxProductCount) * 100} 
+                      className="h-2"
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -5,19 +5,26 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getDashboardData, type DashboardData } from '@/lib/api';
-import type { User } from '@/lib/types';
 import { Loader2 } from "lucide-react"; 
+import { User } from '@/lib/cookieUtils';
+import { StoreSelector } from '@/components/ui/store-selector';
 
 // 销售人员视图
 function SalespersonView({ user }: { user: User }) {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    user.storeIds.length === 1 ? user.storeIds[0] : 'all'
+  );
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await getDashboardData({ userId: user.id });
+        const data = await getDashboardData({ 
+          userId: user.id,
+          storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
+        });
         setDashboardData(data);
       } catch (err) {
         setError('加载数据失败，请重试');
@@ -27,7 +34,7 @@ function SalespersonView({ user }: { user: User }) {
       }
     }
     fetchData();
-  }, [user.id]);
+  }, [user.id, selectedStoreId]);
 
   if (loading) {
     return (
@@ -36,19 +43,40 @@ function SalespersonView({ user }: { user: User }) {
       </div>
     );
   }
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
   if (!dashboardData) return null;
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">欢迎回来，{user.name}老师</h1>
+        <StoreSelector 
+          value={selectedStoreId}
+          onChange={setSelectedStoreId}
+          className="w-[180px]"
+        />
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>欢迎回来，{user.name}老师</CardTitle>
+          <CardTitle>本月业绩</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>您的本月业绩：</p>
-          <p>实收额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
-          <p>成单数：{dashboardData.performance.monthlyOrders}</p>
+          <div className="space-y-2">
+            <p className="flex justify-between">
+              <span>实收额：</span>
+              <span className="font-medium">
+                ¥{dashboardData.performance.monthlySales.toLocaleString('zh-CN', { 
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2 
+                })}
+              </span>
+            </p>
+            <p className="flex justify-between">
+              <span>成单数：</span>
+              <span className="font-medium">{dashboardData.performance.monthlyOrders} 笔</span>
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -57,11 +85,11 @@ function SalespersonView({ user }: { user: User }) {
           <CardTitle>快速操作</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col space-y-2">
-          <Link href="/sales-form">
+          <Link href="/sales-form" className="w-full">
             <Button className="w-full">录入成交</Button>
           </Link>
-          <Link href="/sales-records">
-            <Button className="w-full">我的成交记录</Button>
+          <Link href="/sales-records" className="w-full">
+            <Button className="w-full" variant="outline">我的成交记录</Button>
           </Link>
         </CardContent>
       </Card>
@@ -71,13 +99,23 @@ function SalespersonView({ user }: { user: User }) {
           <CardTitle>最近成交</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul>
-            {dashboardData.recentSales.map((sale) => (
-              <li key={sale.id} className="mb-2">
-                ¥{sale.amount} - {sale.date}
-              </li>
-            ))}
-          </ul>
+          {dashboardData.recentSales.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">暂无成交记录</div>
+          ) : (
+            <ul className="space-y-3">
+              {dashboardData.recentSales.map((sale) => (
+                <li key={sale.id} className="flex justify-between items-center">
+                  <span className="text-gray-600">{sale.date}</span>
+                  <span className="font-medium">
+                    ¥{sale.amount.toLocaleString('zh-CN', { 
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2 
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -89,11 +127,16 @@ function ManagerView({ user }: { user: User }) {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    user.storeIds.length === 1 ? user.storeIds[0] : 'all'
+  );
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const data = await getDashboardData({ storeId: user.storeId });
+        const data = await getDashboardData({ 
+          storeId: selectedStoreId === 'all' ? undefined : selectedStoreId 
+        });
         setDashboardData(data);
       } catch (err) {
         setError('加载数据失败，请重试');
@@ -103,7 +146,7 @@ function ManagerView({ user }: { user: User }) {
       }
     }
     fetchData();
-  }, [user.storeId]);
+  }, [selectedStoreId]);
 
   if (loading) {
     return (
@@ -112,18 +155,40 @@ function ManagerView({ user }: { user: User }) {
       </div>
     );
   }
-  if (error) return <div className="text-red-500">{error}</div>;
+  if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
   if (!dashboardData) return null;
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">{user.name}老师，团队业绩概览</h1>
+        <StoreSelector 
+          value={selectedStoreId}
+          onChange={setSelectedStoreId}
+          className="w-[180px]"
+        />
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>{user.name}老师，团队业绩概览</CardTitle>
+          <CardTitle>本月业绩</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>本月实收额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
-          <p>本月成单数：{dashboardData.performance.monthlyOrders}</p>
+          <div className="space-y-2">
+            <p className="flex justify-between">
+              <span>实收额：</span>
+              <span className="font-medium">
+                ¥{dashboardData.performance.monthlySales.toLocaleString('zh-CN', { 
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2 
+                })}
+              </span>
+            </p>
+            <p className="flex justify-between">
+              <span>成单数：</span>
+              <span className="font-medium">{dashboardData.performance.monthlyOrders} 笔</span>
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -132,11 +197,11 @@ function ManagerView({ user }: { user: User }) {
           <CardTitle>快速操作</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col space-y-2">
-          <Link href="/sales-records">
+          <Link href="/sales-records" className="w-full">
             <Button className="w-full">查看所有成交记录</Button>
           </Link>
-          <Link href="/sales-charts">
-            <Button className="w-full">成交图表</Button>
+          <Link href="/sales-charts" className="w-full">
+            <Button className="w-full" variant="outline">成交图表</Button>
           </Link>
         </CardContent>
       </Card>
@@ -146,13 +211,23 @@ function ManagerView({ user }: { user: User }) {
           <CardTitle>Top老师</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul>
-            {dashboardData.topSalespeople.map((person, index) => (
-              <li key={index} className="mb-2">
-                {person.name} - ¥{person.sales}
-              </li>
-            ))}
-          </ul>
+          {dashboardData.topSalespeople.length === 0 ? (
+            <div className="text-center py-4 text-gray-500">暂无数据</div>
+          ) : (
+            <ul className="space-y-3">
+              {dashboardData.topSalespeople.map((person, index) => (
+                <li key={index} className="flex justify-between items-center">
+                  <span>{person.name}</span>
+                  <span className="font-medium">
+                    ¥{person.sales.toLocaleString('zh-CN', { 
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2 
+                    })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -168,7 +243,7 @@ export default function Home() {
         .split('; ')
         .find(row => row.startsWith('user='));
       if (userCookie) {
-        return JSON.parse(userCookie.split('=')[1]);
+        return JSON.parse(decodeURIComponent(userCookie.split('=')[1]));
       }
       return null;
     };
@@ -176,11 +251,13 @@ export default function Home() {
     setUser(getCookieUser());
   }, []);
 
+  if (!user) {
+    return <div className="text-center py-10">请先登录</div>;
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {user ? (
-        user.role === 'manager' ? <ManagerView user={user} /> : <SalespersonView user={user} />
-      ) : null}
+      {user.role === 'manager' ? <ManagerView user={user} /> : <SalespersonView user={user} />}
     </div>
   );
 }

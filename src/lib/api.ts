@@ -1,14 +1,14 @@
 import type { User } from './cookieUtils';
-// import { config } from './config';
-// import { testSalesperson, testManager } from './testData';
 
 // API 响应类型定义
 interface AuthResponse {
   user_id: string;
   user_name: string;
-  store_id: string;
+  stores: Array<{
+    store_id: string;
+    store_name: string;
+  }>;
   role_id: number;
-  store_name: string;
 }
 
 export type SalesRecord = {
@@ -35,8 +35,10 @@ export async function authenticateUser(trackingId: string): Promise<User> {
       id: data.user_id,
       name: data.user_name,
       role: data.role_id === 1 ? 'manager' : 'salesperson',
-      storeId: data.store_id,
-      storeName: data.store_name,
+      storeIds: data.stores.map(store => store.store_id),
+      storeNames: Object.fromEntries(
+        data.stores.map(store => [store.store_id, store.store_name])
+      ),
     };
   } catch (error) {
     console.error('认证过程中发生错误：', error);
@@ -165,6 +167,7 @@ export async function getChartData(params: {
   endDate: string;
   userId?: string;
   role?: string;
+  storeId?: string;
 }): Promise<ChartData> {
   try {
     const queryParams = new URLSearchParams({
@@ -172,12 +175,9 @@ export async function getChartData(params: {
       end_date: params.endDate,
     });
     
-    if (params.userId) {
-      queryParams.set('user_id', params.userId);
-    }
-    if (params.role) {
-      queryParams.set('role', params.role);
-    }
+    if (params.userId) queryParams.set('user_id', params.userId);
+    if (params.role) queryParams.set('role', params.role);
+    if (params.storeId) queryParams.set('store_id', params.storeId);
 
     const response = await fetch(
       `/api/v1/sales/charts?${queryParams.toString()}`,
@@ -219,12 +219,14 @@ export interface DashboardData {
 
 export async function getDashboardData(params: {
   userId?: string;
-  storeId?: string;
+  storeId?: string | 'all';
 }): Promise<DashboardData> {
   try {
     const queryParams = new URLSearchParams();
     if (params.userId) queryParams.set('user_id', params.userId);
-    if (params.storeId) queryParams.set('store_id', params.storeId);
+    if (params.storeId && params.storeId !== 'all') {
+      queryParams.set('store_id', params.storeId);
+    }
 
     const response = await fetch(
       `/api/v1/sales/dashboard?${queryParams.toString()}`,

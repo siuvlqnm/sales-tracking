@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,24 +12,29 @@ import { Input } from '@/components/ui/input';
 import { getUser } from '@/lib/cookieUtils';
 import { querySalesRecords } from '@/lib/api';
 import type { SalesRecord } from '@/lib/api';
+import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesRecordList() {
+  const user = getUser();
+  const isManager = user?.role === 'manager';
+
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [salesperson, setSalesperson] = useState('');
+  const [selectedStoreId, setSelectedStoreId] = useState<string>(
+    // 如果用户只有一个门店，默认选择该门店，否则默认选择 'all'
+    user?.storeIds.length === 1 ? user.storeIds[0] : 'all'
+  );
 
   const fetchRecords = useCallback(async () => {
+    if (!user) return;
+    
     setLoading(true);
     setError('');
     
     try {
-      const user = getUser();
-      if (!user) {
-        throw new Error('用户未登录');
-      }
-
       const params: {
         userId?: string;
         storeId?: string;
@@ -37,15 +42,16 @@ export default function SalesRecordList() {
         endDate?: string;
       } = {};
 
-      // 根据用户角色设置查询参数
+      // 设置查询参数
       if (user.role === 'salesperson') {
         params.userId = user.id;
-        params.storeId = user.storeId;
-      } else if (user.role === 'manager') {
-        params.storeId = user.storeId;
-        if (salesperson) {
-          params.userId = salesperson;
-        }
+      } else if (salesperson) {
+        params.userId = salesperson;
+      }
+
+      // 设置门店参数
+      if (selectedStoreId !== 'all') {
+        params.storeId = selectedStoreId;
       }
 
       // 设置日期范围
@@ -63,14 +69,17 @@ export default function SalesRecordList() {
     } finally {
       setLoading(false);
     }
-  }, [date, salesperson]);
+  }, [date, salesperson, selectedStoreId, user]);
 
   useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
+    if (user) {
+      fetchRecords();
+    }
+  }, [fetchRecords, user]);
 
-  const user = getUser();
-  const isManager = user?.role === 'manager';
+  if (!user) {
+    return <div className="text-center py-10">请先登录</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -89,7 +98,7 @@ export default function SalesRecordList() {
               {date ? format(date, "PPP") : <span>选择日期</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar
               mode="single"
               selected={date}
@@ -98,18 +107,30 @@ export default function SalesRecordList() {
             />
           </PopoverContent>
         </Popover>
+        
         {isManager && (
           <Input
-            placeholder="老师ID"
+            placeholder="输入老师ID查询"
             value={salesperson}
             onChange={(e) => setSalesperson(e.target.value)}
           />
         )}
+
+        <StoreSelector 
+          value={selectedStoreId}
+          onChange={setSelectedStoreId}
+          className="w-full"
+        />
       </div>
+
       {loading ? (
-        <p>加载中...</p>
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
       ) : error ? (
-        <p className="text-red-500">{error}</p>
+        <div className="text-center py-8 text-red-500">{error}</div>
+      ) : records.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">暂无记录</div>
       ) : (
         <div className="overflow-x-auto">
           <Table>
@@ -117,8 +138,8 @@ export default function SalesRecordList() {
               <TableRow>
                 <TableHead>老师</TableHead>
                 <TableHead>门店</TableHead>
-                <TableHead>金额</TableHead>
-                <TableHead>时间</TableHead>
+                <TableHead className="text-right">金额</TableHead>
+                <TableHead className="text-right">时间</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -126,8 +147,15 @@ export default function SalesRecordList() {
                 <TableRow key={record.id}>
                   <TableCell>{record.user_name}</TableCell>
                   <TableCell>{record.store_name}</TableCell>
-                  <TableCell>¥{record.actual_amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</TableCell>
-                  <TableCell>{format(new Date(record.submission_time), 'yyyy-MM-dd HH:mm:ss')}</TableCell>
+                  <TableCell className="text-right">
+                    ¥{record.actual_amount.toLocaleString('zh-CN', { 
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2 
+                    })}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {format(new Date(record.submission_time), 'yyyy-MM-dd HH:mm:ss')}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

@@ -2,8 +2,8 @@ export interface User {
   id: string;
   name: string;
   role: 'manager' | 'salesperson';
-  storeId: string;
-  storeName: string;
+  storeIds: string[];
+  storeNames: { [key: string]: string };
 }
 
 export function getUser(): User | null {
