@@ -47,13 +47,11 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, user, selectedStoreId]);
+  }, [timeRange, selectedStoreId]);
 
   useEffect(() => {
-    if (user) {
-      fetchChartData();
-    }
-  }, [fetchChartData, user]);
+    fetchChartData();
+  }, [fetchChartData]);
 
   if (!user) {
     return <div className="text-center py-10">请先登录</div>;

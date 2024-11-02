@@ -69,13 +69,11 @@ export default function SalesRecordList() {
     } finally {
       setLoading(false);
     }
-  }, [date, salesperson, selectedStoreId, user]);
+  }, [date, salesperson, selectedStoreId]);
 
   useEffect(() => {
-    if (user) {
-      fetchRecords();
-    }
-  }, [fetchRecords, user]);
+    fetchRecords();
+  }, [fetchRecords]);
 
   if (!user) {
     return <div className="text-center py-10">请先登录</div>;
