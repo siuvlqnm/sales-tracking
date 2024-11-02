@@ -17,7 +17,7 @@ export async function onRequest(context) {
   const authError = await adminAuthMiddleware(request, env);
   if (authError) return authError;
 
-  const db = env.salesTrackingDB;
+  const db = context.env.salesTrackingDB;
 
   if (request.method === 'GET') {
     try {

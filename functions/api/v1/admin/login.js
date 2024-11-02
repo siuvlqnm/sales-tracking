@@ -25,11 +25,11 @@ export async function onRequest(context) {
         });
       }
 
-      const db = env.salesTrackingDB;
+      const db = context.env.salesTrackingDB;
 
       // 密码哈希
       const encoder = new TextEncoder();
-      const data = encoder.encode(password + env.ADMIN_SALT);
+      const data = encoder.encode(password + context.env.ADMIN_SALT);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashedPassword = Array.from(new Uint8Array(hashBuffer))
         .map(b => b.toString(16).padStart(2, '0'))
