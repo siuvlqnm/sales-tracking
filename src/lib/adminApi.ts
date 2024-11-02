@@ -12,6 +12,8 @@ export interface User {
   user_id: string;
   user_name: string;
   created_at: string;
+  store_id?: string;
+  role_id?: number;
 }
 
 export interface UserRole {
@@ -21,25 +23,6 @@ export interface UserRole {
   role_id: number;
   created_at: string;
 }
-
-// 数据验证函数
-// const validateStoreName = (name: string) => {
-//   if (!name.trim()) throw new Error('门店名称不能为空');
-//   if (name.length < 2) throw new Error('门店名称至少需要2个字符');
-//   if (name.length > 50) throw new Error('门店名称不能超过50个字符');
-// };
-
-// const validateUserName = (name: string) => {
-//   if (!name.trim()) throw new Error('员工姓名不能为空');
-//   if (name.length < 2) throw new Error('员工姓名至少需要2个字符');
-//   if (name.length > 20) throw new Error('员工姓名不能超过20个字符');
-// };
-
-// const validateRole = (userId: string, storeId: string, roleId: number) => {
-//   if (!userId) throw new Error('请选择员工');
-//   if (!storeId) throw new Error('请选择门店');
-//   if (![1, 2].includes(roleId)) throw new Error('请选择有效的角色');
-// };
 
 // API 请求基础配置
 const getAuthToken = () => {

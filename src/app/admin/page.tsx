@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Toaster } from '@/components/ui/toaster';
 import { addStore, addUser, assignRole, getStores, getUsers } from '@/lib/adminApi';
 import type { Store, User } from '@/lib/adminApi';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 // import { useToast } from '@/components/ui/use-toast';
 
 export default function AdminPage() {
@@ -23,14 +24,22 @@ export default function AdminPage() {
   const [selectedRole, setSelectedRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   // 检查管理员认证
   useEffect(() => {
     const adminToken = localStorage.getItem('adminToken');
     if (!adminToken) {
       router.push('/admin/login');
+    } else {
+      setIsLoading(false);
     }
   }, [router]);
+
+  // 如果正在加载，显示空白或加载指示器
+  if (isLoading) {
+    return null; // 或者返回一个加载指示器组件
+  }
 
   // 加载数据
   useEffect(() => {
@@ -206,6 +215,46 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* 添加员工列表展示 */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>员工列表</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>员工姓名</TableHead>
+                  <TableHead>员工ID</TableHead>
+                  <TableHead>创建时间</TableHead>
+                  <TableHead>所属门店</TableHead>
+                  <TableHead>角色</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.user_id}>
+                    <TableCell>{user.user_name}</TableCell>
+                    <TableCell className="font-mono">{user.user_id}</TableCell>
+                    <TableCell>{new Date(user.created_at).toLocaleString('zh-CN')}</TableCell>
+                    <TableCell>
+                      {stores.find(store => 
+                        user.store_id === store?.store_id
+                      )?.store_name || '未分配'}
+                    </TableCell>
+                    <TableCell>
+                      {user.role_id === 1 ? '店长' : 
+                       user.role_id === 2 ? '销售' : 
+                       '未分配'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
       </div>
       <Toaster />
     </>

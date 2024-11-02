@@ -15,14 +15,26 @@ export default function AdminLoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // 检查是否已登录
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (token) {
       router.push('/admin');
+    } else {
+      setIsLoading(false);
     }
   }, [router]);
+
+  // 如果正在加载，显示空白或加载指示器
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
