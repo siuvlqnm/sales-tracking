@@ -110,7 +110,7 @@ export async function onRequest(context) {
 
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ message: '服务器内部错误' }), {
+    return new Response(JSON.stringify({ message: '服务器内部错误：' + error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
