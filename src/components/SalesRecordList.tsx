@@ -16,23 +16,25 @@ import { StoreSelector } from '@/components/ui/store-selector';
 export default function SalesRecordList() {
   const user = getUser();
   const isManager = user?.role === 'manager';
+  const [userStoreIds] = useState(user?.storeIds || []);
 
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [salesperson, setSalesperson] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>(
-    // 如果用户只有一个门店，默认选择该门店，否则默认选择 'all'
-    user?.storeIds.length === 1 ? user.storeIds[0] : 'all'
+    userStoreIds.length === 1 ? userStoreIds[0] : 'all'
   );
 
   const fetchRecords = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
       const response = await fetch('/api/v1/sales', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Store-Id': selectedStoreId || user?.storeIds[0] || ''
+          'Store-Id': selectedStoreId === 'all' ? userStoreIds[0] : selectedStoreId
         }
       });
       
@@ -45,7 +47,7 @@ export default function SalesRecordList() {
     } finally {
       setLoading(false);
     }
-  }, [selectedStoreId, user]);
+  }, [selectedStoreId, user?.id, userStoreIds]);
 
   useEffect(() => {
     fetchRecords();
