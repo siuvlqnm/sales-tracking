@@ -61,7 +61,7 @@ export async function onRequest(context) {
       const message = `${header}.${payload}`;
       const key = await crypto.subtle.importKey(
         'raw',
-        encoder.encode(env.JWT_SECRET),
+        encoder.encode(context.env.JWT_SECRET),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign']
