@@ -47,7 +47,7 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, selectedStoreId]);
+  }, [timeRange, selectedStoreId, user]);
 
   useEffect(() => {
     fetchChartData();

@@ -44,14 +44,26 @@ export async function onRequest(context) {
           u.user_id, 
           u.user_name, 
           u.created_at,
-          ur.store_id,
-          ur.role_id
+          u.role_id,
+          GROUP_CONCAT(s.store_id) as store_ids,
+          GROUP_CONCAT(s.store_name) as store_names
         FROM users u
-        LEFT JOIN user_roles ur ON u.user_id = ur.user_id
+        LEFT JOIN user_stores us ON u.user_id = us.user_id
+        LEFT JOIN stores s ON us.store_id = s.store_id
+        GROUP BY u.user_id, u.user_name, u.created_at, u.role_id
         ORDER BY u.created_at DESC
       `).all();
 
-      return new Response(JSON.stringify(users.results), {
+      // 处理结果，将门店信息转换为数组
+      const formattedUsers = users.results.map(user => ({
+        ...user,
+        stores: user.store_ids ? user.store_ids.split(',').map((store_id, index) => ({
+          store_id,
+          store_name: user.store_names.split(',')[index]
+        })) : []
+      }));
+
+      return new Response(JSON.stringify(formattedUsers), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

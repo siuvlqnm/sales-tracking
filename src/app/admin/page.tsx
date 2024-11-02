@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Toaster } from '@/components/ui/toaster';
-import { addStore, addUser, assignRole, getStores, getUsers } from '@/lib/adminApi';
+import { addStore, addUser, assignRole, getStores, getUsers, assignStore } from '@/lib/adminApi';
 import type { Store, User } from '@/lib/adminApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 // import { useToast } from '@/components/ui/use-toast';
@@ -19,12 +19,17 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [newStoreName, setNewStoreName] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [selectedUser, setSelectedUser] = useState('');
-  const [selectedStore, setSelectedStore] = useState('');
-  const [selectedRole, setSelectedRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [roleAssignment, setRoleAssignment] = useState({
+    userId: '',
+    roleId: '',
+  });
+  const [storeAssignment, setStoreAssignment] = useState({
+    userId: '',
+    storeId: '',
+  });
 
   // 检查管理员认证
   useEffect(() => {
@@ -97,14 +102,32 @@ export default function AdminPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await assignRole(selectedUser, selectedStore, parseInt(selectedRole));
-      setSelectedUser('');
-      setSelectedStore('');
-      setSelectedRole('');
+      await assignRole(
+        roleAssignment.userId, 
+        parseInt(roleAssignment.roleId)
+      );
+      setRoleAssignment({ userId: '', roleId: '' });
       refreshData();
     } catch (error) {
-      // 错误已在 API 函数中处理
       console.error('分配角色失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 分配门店
+  const handleAssignStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await assignStore(
+        storeAssignment.userId,
+        storeAssignment.storeId
+      );
+      setStoreAssignment({ userId: '', storeId: '' });
+      refreshData();
+    } catch (error) {
+      console.error('分配门店失败:', error);
     } finally {
       setLoading(false);
     }
@@ -175,7 +198,10 @@ export default function AdminPage() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAssignRole} className="space-y-4">
-                <Select value={selectedUser} onValueChange={setSelectedUser}>
+                <Select 
+                  value={roleAssignment.userId} 
+                  onValueChange={(value) => setRoleAssignment(prev => ({ ...prev, userId: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="选择员工" />
                   </SelectTrigger>
@@ -188,7 +214,55 @@ export default function AdminPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={selectedStore} onValueChange={setSelectedStore}>
+                <Select 
+                  value={roleAssignment.roleId}
+                  onValueChange={(value) => setRoleAssignment(prev => ({ ...prev, roleId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择角色" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">店长</SelectItem>
+                    <SelectItem value="2">销售</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  type="submit"
+                  disabled={loading || !roleAssignment.userId || !roleAssignment.roleId}
+                >
+                  分配角色
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>分配门店</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAssignStore} className="space-y-4">
+                <Select 
+                  value={storeAssignment.userId}
+                  onValueChange={(value) => setStoreAssignment(prev => ({ ...prev, userId: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="选择员工" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((user) => (
+                      <SelectItem key={user.user_id} value={user.user_id}>
+                        {user.user_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select 
+                  value={storeAssignment.storeId}
+                  onValueChange={(value) => setStoreAssignment(prev => ({ ...prev, storeId: value }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="选择门店" />
                   </SelectTrigger>
@@ -201,21 +275,11 @@ export default function AdminPage() {
                   </SelectContent>
                 </Select>
 
-                <Select value={selectedRole} onValueChange={setSelectedRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择角色" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">店长</SelectItem>
-                    <SelectItem value="2">销售</SelectItem>
-                  </SelectContent>
-                </Select>
-
                 <Button
                   type="submit"
-                  disabled={loading || !selectedUser || !selectedStore || !selectedRole}
+                  disabled={loading || !storeAssignment.userId || !storeAssignment.storeId}
                 >
-                  分配角色
+                  分配门店
                 </Button>
               </form>
             </CardContent>
@@ -245,9 +309,7 @@ export default function AdminPage() {
                     <TableCell className="font-mono">{user.user_id}</TableCell>
                     <TableCell>{new Date(user.created_at).toLocaleString('zh-CN')}</TableCell>
                     <TableCell>
-                      {stores.find(store => 
-                        user.store_id === store?.store_id
-                      )?.store_name || '未分配'}
+                      {user.stores?.map(store => store.store_name).join(', ') || '未分配'}
                     </TableCell>
                     <TableCell>
                       {user.role_id === 1 ? '店长' : 

@@ -10,7 +10,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { getUser } from '@/lib/cookieUtils';
-import { querySalesRecords } from '@/lib/api';
 import type { SalesRecord } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
@@ -20,7 +19,6 @@ export default function SalesRecordList() {
 
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [salesperson, setSalesperson] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>(
@@ -29,47 +27,25 @@ export default function SalesRecordList() {
   );
 
   const fetchRecords = useCallback(async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    setError('');
-    
     try {
-      const params: {
-        userId?: string;
-        storeId?: string;
-        startDate?: string;
-        endDate?: string;
-      } = {};
-
-      // 设置查询参数
-      if (user.role === 'salesperson') {
-        params.userId = user.id;
-      } else if (salesperson) {
-        params.userId = salesperson;
-      }
-
-      // 设置门店参数
-      if (selectedStoreId !== 'all') {
-        params.storeId = selectedStoreId;
-      }
-
-      // 设置日期范围
-      if (date) {
-        const dateStr = format(date, 'yyyy-MM-dd');
-        params.startDate = dateStr;
-        params.endDate = dateStr;
-      }
-
-      const records = await querySalesRecords(params);
-      setRecords(records);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '加载记录失败');
-      console.error(err);
+      setLoading(true);
+      const response = await fetch('/api/v1/sales', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Store-Id': selectedStoreId || user?.storeIds[0] || ''
+        }
+      });
+      
+      if (!response.ok) throw new Error('获取数据失败');
+      
+      const data = await response.json();
+      setRecords(data);
+    } catch (error) {
+      console.error('Error fetching records:', error);
     } finally {
       setLoading(false);
     }
-  }, [date, salesperson, selectedStoreId]);
+  }, [selectedStoreId, user]);
 
   useEffect(() => {
     fetchRecords();
@@ -125,8 +101,6 @@ export default function SalesRecordList() {
         <div className="flex justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin" />
         </div>
-      ) : error ? (
-        <div className="text-center py-8 text-red-500">{error}</div>
       ) : records.length === 0 ? (
         <div className="text-center py-8 text-gray-500">暂无记录</div>
       ) : (

@@ -38,11 +38,11 @@ export async function onRequest(context) {
 
   try {
     if (request.method === 'POST') {
-      const { user_id, store_id, role_id } = await request.json();
+      const { user_id, role_id } = await request.json();
 
       // 验证输入
-      if (!user_id || !store_id || !role_id) {
-        return new Response(JSON.stringify({ message: '用户ID、门店ID和角色ID都不能为空' }), {
+      if (!user_id || !role_id) {
+        return new Response(JSON.stringify({ message: '用户ID和角色ID不能为空' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -58,7 +58,7 @@ export async function onRequest(context) {
 
       // 检查用户是否存在
       const user = await db.prepare(
-        'SELECT user_id FROM users WHERE user_id = ?'
+        'SELECT user_id, role_id FROM users WHERE user_id = ?'
       ).bind(user_id).first();
 
       if (!user) {
@@ -68,73 +68,38 @@ export async function onRequest(context) {
         });
       }
 
-      // 检查门店是否存在
-      const store = await db.prepare(
-        'SELECT store_id FROM stores WHERE store_id = ?'
-      ).bind(store_id).first();
-
-      if (!store) {
-        return new Response(JSON.stringify({ message: '门店不存在' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // 检查用户在所有门店的角色，确保不能同时是销售和店长
-      const userRoles = await db.prepare(`
-        SELECT role_id 
-        FROM user_roles 
+      // 更新用户角色
+      await db.prepare(`
+        UPDATE users 
+        SET role_id = ? 
         WHERE user_id = ?
-      `).bind(user_id).all();
+      `).bind(role_id, user_id).run();
 
-      // 检查现有角色
-      const existingRoles = userRoles.results.map(r => r.role_id);
-      
-      // 如果要设置为店长(role_id = 1)，检查是否已有销售角色
-      if (role_id === 1 && existingRoles.includes(2)) {
-        return new Response(JSON.stringify({ message: '该员工已是销售人员，不能设置为店长' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-      
-      // 如果要设置为销售(role_id = 2)，检查是否已有店长角色
-      if (role_id === 2 && existingRoles.includes(1)) {
-        return new Response(JSON.stringify({ message: '该员工已是店长，不能设置为销售人员' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      // 获取更新后的用户信息（包含门店信息）
+      const updatedUser = await db.prepare(`
+        SELECT 
+          u.user_id, 
+          u.user_name, 
+          u.role_id,
+          GROUP_CONCAT(s.store_id) as store_ids,
+          GROUP_CONCAT(s.store_name) as store_names
+        FROM users u
+        LEFT JOIN user_stores us ON u.user_id = us.user_id
+        LEFT JOIN stores s ON us.store_id = s.store_id
+        WHERE u.user_id = ?
+        GROUP BY u.user_id, u.user_name, u.role_id
+      `).bind(user_id).first();
 
-      // 检查是否已经存在相同的角色分配
-      const existingRole = await db.prepare(
-        'SELECT id FROM user_roles WHERE user_id = ? AND store_id = ?'
-      ).bind(user_id, store_id).first();
+      // 格式化用户信息
+      const formattedUser = {
+        ...updatedUser,
+        stores: updatedUser.store_ids ? updatedUser.store_ids.split(',').map((store_id, index) => ({
+          store_id,
+          store_name: updatedUser.store_names.split(',')[index]
+        })) : []
+      };
 
-      if (existingRole) {
-        // 更新现有角色
-        await db.prepare(`
-          UPDATE user_roles 
-          SET role_id = ? 
-          WHERE user_id = ? AND store_id = ?
-        `).bind(role_id, user_id, store_id).run();
-      } else {
-        // 添加新角色
-        await db.prepare(`
-          INSERT INTO user_roles (user_id, store_id, role_id, created_at) 
-          VALUES (?, ?, ?, datetime("now"))
-        `).bind(user_id, store_id, role_id).run();
-      }
-
-      // 获取更新后的所有角色信息
-      const updatedRoles = await db.prepare(`
-        SELECT id, user_id, store_id, role_id, created_at 
-        FROM user_roles 
-        WHERE user_id = ?
-        ORDER BY created_at DESC
-      `).bind(user_id).all();
-
-      return new Response(JSON.stringify(updatedRoles.results), {
+      return new Response(JSON.stringify(formattedUser), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

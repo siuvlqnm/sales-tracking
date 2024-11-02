@@ -15,21 +15,21 @@ export async function onRequest(context) {
       const { user_id } = await request.json();
       
       const db = context.env.salesTrackingDB;
-      const userStores = await db.prepare(`
+      const userInfo = await db.prepare(`
         SELECT 
           u.user_id,
           u.user_name,
-          GROUP_CONCAT(ur.store_id) as store_ids,
-          MAX(ur.role_id) as role_id,
+          u.role_id,
+          GROUP_CONCAT(s.store_id) as store_ids,
           GROUP_CONCAT(s.store_name) as store_names
         FROM users u
-        JOIN user_roles ur ON u.user_id = ur.user_id
-        JOIN stores s ON ur.store_id = s.store_id
+        JOIN user_stores us ON u.user_id = us.user_id
+        JOIN stores s ON us.store_id = s.store_id
         WHERE u.user_id = ?
-        GROUP BY u.user_id, u.user_name
+        GROUP BY u.user_id, u.user_name, u.role_id
       `).bind(user_id).first();
 
-      if (!userStores) {
+      if (!userInfo) {
         return new Response(JSON.stringify({ message: 'User not found' }), {
           status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -37,12 +37,12 @@ export async function onRequest(context) {
       }
 
       const response = {
-        user_id: userStores.user_id,
-        user_name: userStores.user_name,
-        role_id: userStores.role_id,
-        stores: userStores.store_ids.split(',').map((store_id, index) => ({
+        user_id: userInfo.user_id,
+        user_name: userInfo.user_name,
+        role_id: userInfo.role_id,
+        stores: userInfo.store_ids.split(',').map((store_id, index) => ({
           store_id,
-          store_name: userStores.store_names.split(',')[index]
+          store_name: userInfo.store_names.split(',')[index]
         }))
       };
 

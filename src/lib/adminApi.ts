@@ -12,15 +12,17 @@ export interface User {
   user_id: string;
   user_name: string;
   created_at: string;
-  store_id?: string;
-  role_id?: number;
+  role_id: number;
+  stores?: Array<{
+    store_id: string;
+    store_name: string;
+  }>;
 }
 
-export interface UserRole {
+export interface StoreAssignment {
   id: number;
   user_id: string;
   store_id: string;
-  role_id: number;
   created_at: string;
 }
 
@@ -63,8 +65,12 @@ const userSchema = z.object({
 
 const roleSchema = z.object({
   user_id: z.string().min(1, '请选择员工'),
-  store_id: z.string().min(1, '请选择门店'),
   role_id: z.number().int().min(1).max(2, '无效的角色ID')
+});
+
+const storeAssignmentSchema = z.object({
+  user_id: z.string().min(1, '请选择员工'),
+  store_id: z.string().min(1, '请选择门店')
 });
 
 // 管理员登录
@@ -250,18 +256,16 @@ export async function getUsers(): Promise<User[]> {
 // 分配角色
 export async function assignRole(
   userId: string,
-  storeId: string,
   roleId: number
-): Promise<UserRole> {
+): Promise<User> {
   try {
-    roleSchema.parse({ user_id: userId, store_id: storeId, role_id: roleId });
+    roleSchema.parse({ user_id: userId, role_id: roleId });
 
     const response = await fetch('/api/v1/admin/roles', {
       method: 'POST',
       headers: baseHeaders,
       body: JSON.stringify({
         user_id: userId,
-        store_id: storeId,
         role_id: roleId,
       }),
     });
@@ -281,6 +285,44 @@ export async function assignRole(
     toast({
       title: "错误",
       description: error instanceof Error ? error.message : '分配角色失败',
+      variant: "destructive",
+    });
+    throw error;
+  }
+}
+
+// 添加新的门店分配函数
+export async function assignStore(
+  userId: string,
+  storeId: string
+): Promise<StoreAssignment> {
+  try {
+    storeAssignmentSchema.parse({ user_id: userId, store_id: storeId });
+
+    const response = await fetch('/api/v1/admin/stores/assign', {
+      method: 'POST',
+      headers: baseHeaders,
+      body: JSON.stringify({
+        user_id: userId,
+        store_id: storeId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '分配门店失败');
+    }
+
+    const data = await response.json();
+    toast({
+      title: "成功",
+      description: "门店分配成功",
+    });
+    return data;
+  } catch (error) {
+    toast({
+      title: "错误",
+      description: error instanceof Error ? error.message : '分配门店失败',
       variant: "destructive",
     });
     throw error;
