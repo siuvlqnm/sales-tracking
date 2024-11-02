@@ -52,7 +52,7 @@ export default function SalesCharts() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">销售数据分析</h1>
+      <h1 className="text-2xl font-bold mb-6">成交数据分析</h1>
       <div className="mb-6">
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
@@ -68,7 +68,7 @@ export default function SalesCharts() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>每日销售额</CardTitle>
+            <CardTitle>每日成交额</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -86,7 +86,7 @@ export default function SalesCharts() {
         {user?.role === 'manager' && salesData.topSalespeople && (
           <Card>
             <CardHeader>
-              <CardTitle>销售人员业绩排名</CardTitle>
+              <CardTitle>老师业绩排名</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">

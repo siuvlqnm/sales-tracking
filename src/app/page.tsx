@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getDashboardData, type DashboardData } from '@/lib/api';
 import type { User } from '@/lib/types';
+import { Loader2 } from "lucide-react"; 
 
 // 销售人员视图
 function SalespersonView({ user }: { user: User }) {
@@ -28,7 +29,13 @@ function SalespersonView({ user }: { user: User }) {
     fetchData();
   }, [user.id]);
 
-  if (loading) return <div>加载中...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
   if (error) return <div className="text-red-500">{error}</div>;
   if (!dashboardData) return null;
 
@@ -36,12 +43,12 @@ function SalespersonView({ user }: { user: User }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>欢迎回来，{user.name}</CardTitle>
+          <CardTitle>欢迎回来，{user.name}老师</CardTitle>
         </CardHeader>
         <CardContent>
           <p>您的本月业绩：</p>
-          <p>销售额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
-          <p>订单数：{dashboardData.performance.monthlyOrders}</p>
+          <p>实收额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
+          <p>成单数：{dashboardData.performance.monthlyOrders}</p>
         </CardContent>
       </Card>
 
@@ -51,23 +58,23 @@ function SalespersonView({ user }: { user: User }) {
         </CardHeader>
         <CardContent className="flex flex-col space-y-2">
           <Link href="/sales-form">
-            <Button className="w-full">录入新销售</Button>
+            <Button className="w-full">录入成交</Button>
           </Link>
           <Link href="/sales-records">
-            <Button className="w-full">我的销售记录</Button>
+            <Button className="w-full">我的成交记录</Button>
           </Link>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>最近销售</CardTitle>
+          <CardTitle>最近成交</CardTitle>
         </CardHeader>
         <CardContent>
           <ul>
             {dashboardData.recentSales.map((sale) => (
               <li key={sale.id} className="mb-2">
-                {sale.user_name} - ¥{sale.amount} ({sale.date})
+                ¥{sale.amount} - {sale.date}
               </li>
             ))}
           </ul>
@@ -98,7 +105,13 @@ function ManagerView({ user }: { user: User }) {
     fetchData();
   }, [user.storeId]);
 
-  if (loading) return <div>加载中...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
   if (error) return <div className="text-red-500">{error}</div>;
   if (!dashboardData) return null;
 
@@ -106,11 +119,11 @@ function ManagerView({ user }: { user: User }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>团队业绩概览</CardTitle>
+          <CardTitle>{user.name}老师，团队业绩概览</CardTitle>
         </CardHeader>
         <CardContent>
-          <p>本月销售额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
-          <p>本月订单数：{dashboardData.performance.monthlyOrders}</p>
+          <p>本月实收额：¥{dashboardData.performance.monthlySales.toLocaleString()}</p>
+          <p>本月成单数：{dashboardData.performance.monthlyOrders}</p>
         </CardContent>
       </Card>
 
@@ -120,17 +133,17 @@ function ManagerView({ user }: { user: User }) {
         </CardHeader>
         <CardContent className="flex flex-col space-y-2">
           <Link href="/sales-records">
-            <Button className="w-full">查看所有销售记录</Button>
+            <Button className="w-full">查看所有成交记录</Button>
           </Link>
           <Link href="/sales-charts">
-            <Button className="w-full">销售图表</Button>
+            <Button className="w-full">成交图表</Button>
           </Link>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Top销售人员</CardTitle>
+          <CardTitle>Top老师</CardTitle>
         </CardHeader>
         <CardContent>
           <ul>

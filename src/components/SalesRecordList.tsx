@@ -74,7 +74,7 @@ export default function SalesRecordList() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">销售记录</h1>
+      <h1 className="text-2xl font-bold mb-6">成交记录</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Popover>
           <PopoverTrigger asChild>
@@ -100,7 +100,7 @@ export default function SalesRecordList() {
         </Popover>
         {isManager && (
           <Input
-            placeholder="销售员ID"
+            placeholder="老师ID"
             value={salesperson}
             onChange={(e) => setSalesperson(e.target.value)}
           />
@@ -115,7 +115,7 @@ export default function SalesRecordList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>销售员</TableHead>
+                <TableHead>老师</TableHead>
                 <TableHead>门店</TableHead>
                 <TableHead>金额</TableHead>
                 <TableHead>时间</TableHead>

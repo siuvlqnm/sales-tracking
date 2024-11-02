@@ -29,6 +29,8 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       router.push('/auth');
     } else {
       setLoading(false);
+      // 触发一个事件通知 cookie 已更新
+      window.dispatchEvent(new Event('storage'));
     }
   }, [pathname, router]);
 

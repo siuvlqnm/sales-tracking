@@ -9,29 +9,33 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const getCookieUser = () => {
-      const userCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('user='));
-      if (userCookie) {
-        return JSON.parse(userCookie.split('=')[1]);
-      }
-      return null;
+    const checkUser = () => {
+      const getCookieUser = () => {
+        const userCookie = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('user='));
+        if (userCookie) {
+          return JSON.parse(userCookie.split('=')[1]);
+        }
+        return null;
+      };
+
+      setUser(getCookieUser());
     };
 
-    setUser(getCookieUser());
-  }, []);
+    checkUser();
 
-  // const handleLogout = () => {
-  //   document.cookie = 'user=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
-  //   window.location.href = '/auth';
-  // };
+    window.addEventListener('storage', checkUser);
+
+    return () => {
+      window.removeEventListener('storage', checkUser);
+    };
+  }, []);
 
   if (!user) {
     return null;
   }
 
-  // 在管理员页面隐藏导航栏
   if (pathname?.startsWith('/admin')) {
     return null;
   }
@@ -47,19 +51,19 @@ const Navbar = () => {
             href="/sales-form" 
             className={`hover:text-gray-300 ${pathname === '/sales-form' ? 'underline' : ''}`}
           >
-            录入销售
+            录入成交
           </Link>
           <Link 
             href="/sales-records" 
             className={`hover:text-gray-300 ${pathname === '/sales-records' ? 'underline' : ''}`}
           >
-            销售记录
+            成交记录
           </Link>
           <Link 
             href="/sales-charts" 
             className={`hover:text-gray-300 ${pathname === '/sales-charts' ? 'underline' : ''}`}
           >
-            销售图表
+            成交图表
           </Link>
         </div>
       </div>

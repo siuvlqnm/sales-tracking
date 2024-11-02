@@ -54,7 +54,7 @@ export default function SalesForm() {
     if (!user) {
       setSubmitStatus({
         success: false,
-        message: '缺少销售人员信息，无法提交数据。'
+        message: '缺少人员信息，无法提交数据。'
       });
       return;
     }
@@ -103,7 +103,7 @@ export default function SalesForm() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold">录入金额</CardTitle>
           <CardDescription className="text-sm sm:text-base">
-            请输入您的成交金额，可添加多笔记录（最多10笔）
+            请输入您的实际成交金额，可添加多笔记录（最多10笔）
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleFormSubmit}>
