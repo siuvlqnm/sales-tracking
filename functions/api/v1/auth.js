@@ -20,7 +20,7 @@ export async function onRequest(context) {
           u.user_id,
           u.user_name,
           GROUP_CONCAT(ur.store_id) as store_ids,
-          GROUP_CONCAT(ur.role_id) as role_ids,
+          MAX(ur.role_id) as role_id,
           GROUP_CONCAT(s.store_name) as store_names
         FROM users u
         JOIN user_roles ur ON u.user_id = ur.user_id
@@ -39,9 +39,9 @@ export async function onRequest(context) {
       const response = {
         user_id: userStores.user_id,
         user_name: userStores.user_name,
+        role_id: userStores.role_id,
         stores: userStores.store_ids.split(',').map((store_id, index) => ({
           store_id,
-          role_id: userStores.role_ids.split(',')[index],
           store_name: userStores.store_names.split(',')[index]
         }))
       };
