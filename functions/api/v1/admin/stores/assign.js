@@ -63,12 +63,16 @@ export async function onRequest(context) {
       // 添加新的门店分配
       await db.prepare(`
         INSERT INTO user_stores (user_id, store_id, created_at) 
-        VALUES (?, ?, datetime('now'))
+        VALUES (?, ?, datetime('now', '+8 hours'))
       `).bind(user_id, store_id).run();
 
       // 获取分配结果
       const assignment = await db.prepare(`
-        SELECT id, user_id, store_id, created_at
+        SELECT 
+          id, 
+          user_id, 
+          store_id, 
+          datetime(created_at, '+8 hours') as created_at
         FROM user_stores
         WHERE user_id = ? AND store_id = ?
       `).bind(user_id, store_id).first();
