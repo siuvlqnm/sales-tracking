@@ -24,8 +24,30 @@ function base64UrlDecode(str: string): string {
   return new TextDecoder().decode(bytes);
 }
 
+// 检查 token 是否过期
+export function isTokenExpired(): boolean {
+  const token = localStorage.getItem('token');
+  if (!token) return true;
+
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return true;
+
+    const decodedPayload = JSON.parse(base64UrlDecode(payload));
+    return decodedPayload.exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 // 从 JWT token 中解析用户信息
 export function getUser(): User | null {
+  if (isTokenExpired()) {
+    clearAuth();
+    window.location.href = '/auth'; // 重定向到登录页
+    return null;
+  }
+
   const token = localStorage.getItem('token');
   if (!token) return null;
 
@@ -35,12 +57,6 @@ export function getUser(): User | null {
 
     const decodedPayload = JSON.parse(base64UrlDecode(payload));
     
-    // 检查 token 是否过期
-    if (decodedPayload.exp && decodedPayload.exp * 1000 < Date.now()) {
-      clearAuth();
-      return null;
-    }
-
     return decodedPayload.user;
   } catch (e) {
     console.error('解析用户信息失败:', e);

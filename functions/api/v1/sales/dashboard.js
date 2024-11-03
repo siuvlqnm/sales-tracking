@@ -1,10 +1,12 @@
+import { validateToken } from '../../../middleware/clientAuth';
+
 export async function onRequest(context) {
   const { request, env } = context;
   
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
   if (request.method === 'OPTIONS') {
@@ -13,8 +15,8 @@ export async function onRequest(context) {
 
   if (request.method === 'GET') {
     try {
+      const user = await validateToken(request, corsHeaders);
       const url = new URL(request.url);
-      const user_id = url.searchParams.get('user_id');
       const store_id = url.searchParams.get('store_id');
       
       const db = context.env.salesTrackingDB;
@@ -31,12 +33,15 @@ export async function onRequest(context) {
           SUM(actual_amount) as total_amount
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
-        ${user_id ? 'AND user_id = ?' : store_id ? 'AND store_id = ?' : ''}
+        ${user.role === 'manager' ? (store_id ? 'AND store_id = ?' : '') : 'AND user_id = ?'}
       `;
       
       const performanceParams = [firstDay, lastDay];
-      if (user_id) performanceParams.push(user_id);
-      else if (store_id) performanceParams.push(store_id);
+      if (user.role === 'manager') {
+        if (store_id) performanceParams.push(store_id);
+      } else {
+        performanceParams.push(user.id);
+      }
       
       const performance = await db.prepare(performanceQuery)
         .bind(...performanceParams)
@@ -53,34 +58,41 @@ export async function onRequest(context) {
         FROM sales_records sr
         JOIN users u ON sr.user_id = u.user_id
         JOIN stores s ON sr.store_id = s.store_id
-        WHERE ${user_id ? 'sr.user_id = ?' : store_id ? 'sr.store_id = ?' : '1=1'}
+        WHERE ${user.role === 'manager' ? (store_id ? 'sr.store_id = ?' : '1=1') : 'sr.user_id = ?'}
         ORDER BY sr.submission_time DESC
         LIMIT 5
       `;
       
-      const recentSalesParams = user_id ? [user_id] : store_id ? [store_id] : [];
+      const recentSalesParams = user.role === 'manager' 
+        ? (store_id ? [store_id] : [])
+        : [user.id];
+
       const recentSales = await db.prepare(recentSalesQuery)
         .bind(...recentSalesParams)
         .all();
 
-      // 3. 获取销售排行榜（仅店长视图需要）
-      let topSalespeople = [];
-      if (store_id) {
+      // 3. 获取销售排行榜（仅管理员可见）
+      let topSalespeople = { results: [] };
+      if (user.role === 'manager') {
         const topSalesQuery = `
           SELECT 
             u.user_name as name,
             SUM(sr.actual_amount) as total_sales
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
-          WHERE sr.store_id = ?
-            AND DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          WHERE ${store_id ? 'sr.store_id = ? AND' : ''}
+            DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
           GROUP BY u.user_name
           ORDER BY total_sales DESC
           LIMIT 5
         `;
         
+        const topSalesParams = store_id 
+          ? [store_id, firstDay, lastDay]
+          : [firstDay, lastDay];
+
         topSalespeople = await db.prepare(topSalesQuery)
-          .bind(store_id, firstDay, lastDay)
+          .bind(...topSalesParams)
           .all();
       }
 
@@ -108,6 +120,9 @@ export async function onRequest(context) {
       });
 
     } catch (error) {
+      if (error instanceof Response) {
+        return error;
+      }
       return new Response(JSON.stringify({ 
         message: error.message || 'Internal Server Error' 
       }), {

@@ -1,10 +1,12 @@
+import { validateToken } from '../../../middleware/clientAuth';
+
 export async function onRequest(context) {
   const { request, env } = context;
   
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
   if (request.method === 'OPTIONS') {
@@ -13,28 +15,26 @@ export async function onRequest(context) {
 
   if (request.method === 'POST') {
     try {
-      const { user_id, store_id, amounts, timestamp } = await request.json();
+      const user = await validateToken(request, corsHeaders);
+      const { store_id, amounts, timestamp } = await request.json();
 
       if (!Array.isArray(amounts) || amounts.length === 0) {
         return new Response(JSON.stringify({ message: 'Invalid input' }), { 
           status: 400,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json'
-          }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
       const db = context.env.salesTrackingDB;
 
       // 验证用户权限
-      const userRole = await db.prepare(`
-        SELECT role_id FROM user_roles 
+      const userStore = await db.prepare(`
+        SELECT 1 FROM user_stores 
         WHERE user_id = ? AND store_id = ?
-      `).bind(user_id, store_id).first();
+      `).bind(user.id, store_id).first();
 
-      if (!userRole) {
-        return new Response(JSON.stringify({ message: 'Unauthorized' }), {
+      if (!userStore) {
+        return new Response(JSON.stringify({ message: 'Unauthorized store access' }), {
           status: 403,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -50,7 +50,7 @@ export async function onRequest(context) {
 
       // 展平所有记录的值到一个数组
       const values = amounts.flatMap(amount => [
-        user_id,
+        user.id,
         store_id,
         amount,
         timestamp,
@@ -64,20 +64,17 @@ export async function onRequest(context) {
         count: amounts.length
       }), { 
         status: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (error) {
+      if (error instanceof Response) {
+        return error;
+      }
       return new Response(JSON.stringify({ 
         message: error.message || 'Internal Server Error' 
       }), { 
         status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
   }

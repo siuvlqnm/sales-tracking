@@ -1,4 +1,4 @@
-import { getAuthHeader } from './authUtils';
+import { getAuthHeader, isTokenExpired, clearAuth } from './authUtils';
 
 export type SalesRecord = {
   id: string;
@@ -8,23 +8,62 @@ export type SalesRecord = {
   submission_time: string;
 }
 
+// API 请求基础配置
+const baseConfig = {
+  headers: {
+    'Content-Type': 'application/json',
+  }
+};
+
+// API 请求包装函数
+async function fetchWithAuth(url: string, options: RequestInit = {}) {
+  // 检查 token 是否过期
+  if (isTokenExpired()) {
+    clearAuth();
+    window.location.href = '/auth';
+    throw new Error('登录已过期，请重新登录');
+  }
+
+  // 合并认证头
+  const headers = {
+    ...baseConfig.headers,
+    ...getAuthHeader(),
+    ...options.headers,
+  };
+
+  try {
+    const response = await fetch(url, { ...options, headers });
+    
+    // 处理 401 未授权响应
+    if (response.status === 401) {
+      clearAuth();
+      window.location.href = '/auth';
+      throw new Error('登录已过期，请重新登录');
+    }
+
+    if (!response.ok) {
+      throw new Error('请求失败');
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('网络请求失败');
+  }
+}
+
 // 认证用户
 export async function authenticateUser(trackingId: string): Promise<{token: string}> {
-  try {
-    const response = await fetch(`/api/v1/auth`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: trackingId }),
-    });
+  const response = await fetch('/api/v1/auth', {
+    ...baseConfig,
+    method: 'POST',
+    body: JSON.stringify({ user_id: trackingId }),
+  });
 
-    if (!response.ok) throw new Error('认证失败');
-
-    const data = await response.json();
-    return { token: data.token };
-  } catch (error) {
-    console.error('认证过程中发生错误：', error);
-    throw new Error('获取用户信息失败，请重试。');
-  }
+  if (!response.ok) throw new Error('认证失败');
+  return response.json();
 }
 
 // 修改其他 API 调用函数，使用 getAuthHeader
@@ -33,28 +72,18 @@ export async function submitSalesRecords(
   storeId: string,
   amounts: number[]
 ): Promise<void> {
-  try {
-    const response = await fetch(`/api/v1/sales/form`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        ...getAuthHeader()
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        store_id: storeId,
-        amounts: amounts,
-        timestamp: new Date().toISOString()
-      }),
-    });
+  const response = await fetchWithAuth('/api/v1/sales/form', {
+    method: 'POST',
+    body: JSON.stringify({
+      user_id: userId,
+      store_id: storeId,
+      amounts: amounts,
+      timestamp: new Date().toISOString()
+    }),
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '提交失败');
-    }
-  } catch (error) {
-    console.error('提交销售记录过程中发生错误：', error);
-    throw new Error('提交销售记录失败，请重试。');
+  if (!response.ok) {
+    throw new Error('提交失败');
   }
 }
 
@@ -66,36 +95,20 @@ interface SalesRecordQuery {
 
 // 获取销售记录
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
-  try {
-    const queryParams = new URLSearchParams();
-    if (params.date) {
-      queryParams.set('date', params.date.toISOString().split('T')[0]);
-    }
-    if (params.salesperson) {
-      queryParams.set('salesperson', params.salesperson);
-    }
-    if (params.storeId && params.storeId !== 'all') {
-      queryParams.set('store_id', params.storeId);
-    }
-
-    const response = await fetch(`/api/v1/sales?${queryParams.toString()}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeader()
-      }
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '查询失败');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching records:', error);
-    throw new Error('获取销售记录失败，请重试');
+  const queryParams = new URLSearchParams();
+  if (params.date) {
+    queryParams.set('date', params.date.toISOString().split('T')[0]);
   }
-} 
+  if (params.salesperson) {
+    queryParams.set('salesperson', params.salesperson);
+  }
+  if (params.storeId && params.storeId !== 'all') {
+    queryParams.set('store_id', params.storeId);
+  }
+
+  const response = await fetchWithAuth(`/api/v1/sales?${queryParams.toString()}`);
+  return response.json();
+}
 
 // 获取销售统计
 export async function getSalesStatistics(params: {
@@ -119,7 +132,7 @@ export async function getSalesStatistics(params: {
       end_date: params.endDate,
     });
 
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/v1/sales/statistics?${queryParams.toString()}`,
       {
         headers: {
@@ -164,7 +177,7 @@ export async function getChartData(params: {
     if (params.role) queryParams.set('role', params.role);
     if (params.storeId) queryParams.set('store_id', params.storeId);
 
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/v1/sales/charts?${queryParams.toString()}`,
       {
         headers: {
@@ -215,7 +228,7 @@ export async function getDashboardData(params: {
       queryParams.set('store_id', params.storeId);
     }
 
-    const response = await fetch(
+    const response = await fetchWithAuth(
       `/api/v1/sales/dashboard?${queryParams.toString()}`,
       {
         headers: {

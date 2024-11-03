@@ -1,10 +1,12 @@
+import { validateToken } from '../../../middleware/clientAuth';
+
 export async function onRequest(context) {
   const { request, env } = context;
   
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   };
 
   if (request.method === 'OPTIONS') {
@@ -13,8 +15,8 @@ export async function onRequest(context) {
 
   if (request.method === 'GET') {
     try {
+      const user = await validateToken(request, corsHeaders);
       const url = new URL(request.url);
-      const user_id = url.searchParams.get('user_id');
       const store_id = url.searchParams.get('store_id');
       const start_date = url.searchParams.get('start_date');
       const end_date = url.searchParams.get('end_date');
@@ -36,12 +38,12 @@ export async function onRequest(context) {
 
       const params = [];
 
-      if (user_id) {
+      if (user.role !== 'manager') {
         query += ' AND sr.user_id = ?';
-        params.push(user_id);
+        params.push(user.id);
       }
 
-      if (store_id) {
+      if (store_id && store_id !== 'all') {
         query += ' AND sr.store_id = ?';
         params.push(store_id);
       }
@@ -66,6 +68,9 @@ export async function onRequest(context) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (error) {
+      if (error instanceof Response) {
+        return error;
+      }
       return new Response(JSON.stringify({ 
         message: error.message || 'Internal Server Error' 
       }), {
