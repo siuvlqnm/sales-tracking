@@ -11,14 +11,6 @@ import { addStore, addUser, assignRole, getStores, getUsers, assignStore } from 
 import type { Store, User } from '@/lib/adminApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -221,62 +213,54 @@ export default function AdminPage() {
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0">
-                          <Command>
-                            <CommandInput 
-                              placeholder="搜索门店..." 
+                        <PopoverContent className="w-[300px] p-0" align="start">
+                          <div className="p-2 space-y-2">
+                            <Input
+                              placeholder="搜索门店..."
                               value={searchQueries[user.user_id] || ''}
-                              onValueChange={(value) => 
+                              onChange={(e) => 
                                 setSearchQueries(prev => ({
                                   ...prev,
-                                  [user.user_id]: value
+                                  [user.user_id]: e.target.value
                                 }))
                               }
+                              className="mb-2"
                             />
-                            <CommandList>
-                              <CommandEmpty>未找到门店</CommandEmpty>
-                              <CommandGroup heading="可选门店">
-                                {stores
-                                  .filter(store => {
-                                    const query = searchQueries[user.user_id]?.toLowerCase() || '';
-                                    return store.store_name.toLowerCase().includes(query);
-                                  })
-                                  .map((store) => {
-                                    const isSelected = user.stores?.some(
-                                      s => s.store_id === store.store_id
-                                    ) || false;
-                                    
-                                    return (
-                                      <CommandItem
-                                        key={store.store_id}
-                                        value={store.store_name}
-                                        onSelect={() => {
-                                          const currentStoreIds = user.stores?.map(s => s.store_id) || [];
-                                          const newStoreIds = isSelected
-                                            ? currentStoreIds.filter(id => id !== store.store_id)
-                                            : [...currentStoreIds, store.store_id];
-                                          handleStoreChange(user.user_id, newStoreIds);
-                                          setSearchQueries(prev => ({
-                                            ...prev,
-                                            [user.user_id]: ''
-                                          }));
-                                        }}
-                                      >
-                                        <div className="flex items-center">
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              isSelected ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          <span>{store.store_name}</span>
-                                        </div>
-                                      </CommandItem>
-                                    );
-                                  })}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
+                            <div className="max-h-[200px] overflow-y-auto space-y-1">
+                              {stores
+                                .filter(store => {
+                                  const query = searchQueries[user.user_id]?.toLowerCase() || '';
+                                  return store.store_name.toLowerCase().includes(query);
+                                })
+                                .map((store) => {
+                                  const isSelected = user.stores?.some(
+                                    s => s.store_id === store.store_id
+                                  ) || false;
+                                  
+                                  return (
+                                    <div
+                                      key={store.store_id}
+                                      className={cn(
+                                        "flex items-center space-x-2 p-2 rounded cursor-pointer hover:bg-accent",
+                                        isSelected ? "bg-accent" : ""
+                                      )}
+                                      onClick={() => {
+                                        const currentStoreIds = user.stores?.map(s => s.store_id) || [];
+                                        const newStoreIds = isSelected
+                                          ? currentStoreIds.filter(id => id !== store.store_id)
+                                          : [...currentStoreIds, store.store_id];
+                                        handleStoreChange(user.user_id, newStoreIds);
+                                      }}
+                                    >
+                                      <div className="w-4 h-4 border rounded flex items-center justify-center">
+                                        {isSelected && <Check className="h-3 w-3" />}
+                                      </div>
+                                      <span>{store.store_name}</span>
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
                         </PopoverContent>
                       </Popover>
                     </TableCell>
