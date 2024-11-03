@@ -11,23 +11,15 @@ import { Loader2 } from "lucide-react";
 import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesCharts() {
-  const user = getUser();
   const [timeRange, setTimeRange] = useState('7');
   const [salesData, setSalesData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [userInfo] = useState({
-    id: user?.id,
-    role: user?.role,
-    storeIds: user?.storeIds || []
-  });
-
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(
-    userInfo.storeIds.length === 1 ? userInfo.storeIds[0] : 'all'
-  );
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
+  const user = getUser();
 
   const fetchChartData = useCallback(async () => {
-    if (!userInfo.id) return;
+    if (!user) return;
     
     setLoading(true);
     setError('');
@@ -36,15 +28,11 @@ export default function SalesCharts() {
       const endDate = new Date();
       const startDate = subDays(endDate, parseInt(timeRange));
       
-      const params = {
+      const data = await getChartData({
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd'),
-        userId: userInfo.role === 'salesperson' ? userInfo.id : undefined,
-        role: userInfo.role,
         storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
-      };
-
-      const data = await getChartData(params);
+      });
       setSalesData(data);
     } catch (err) {
       setError('加载图表数据失败，请重试。');
@@ -52,14 +40,14 @@ export default function SalesCharts() {
     } finally {
       setLoading(false);
     }
-  }, [timeRange, selectedStoreId, userInfo]);
+  }, [timeRange, selectedStoreId, user]);
 
   useEffect(() => {
     fetchChartData();
   }, [fetchChartData]);
 
   if (!user) {
-    return <div className="text-center py-10">请先登录</div>;
+    return null;
   }
 
   if (loading) {
@@ -130,7 +118,7 @@ export default function SalesCharts() {
         </Card>
 
         {/* 销售人员排名卡片 - 仅管理员可见 */}
-        {userInfo.role === 'manager' && salesData.topSalespeople && (
+        {user.role === 'manager' && salesData.topSalespeople && (
           <Card>
             <CardHeader>
               <CardTitle>老师业绩排名</CardTitle>

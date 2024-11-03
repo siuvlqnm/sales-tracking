@@ -25,16 +25,17 @@ export default function SalesForm() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
-
   const user = getUser();
-  const hasMultipleStores = user?.storeIds && user.storeIds.length > 1;
 
-  // 如果只有一家店，在组件挂载时自动设置 selectedStoreId
   useEffect(() => {
-    if (user?.storeIds && user.storeIds.length === 1) {
+    if (user?.storeIds.length === 1) {
       setSelectedStoreId(user.storeIds[0]);
     }
-  }, [user?.storeIds]);
+  }, [user]);
+
+  if (!user) {
+    return null;
+  }
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
@@ -62,38 +63,18 @@ export default function SalesForm() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const user = getUser();
-    if (!user) {
-      setSubmitStatus({
-        success: false,
-        message: '缺少人员信息，无法提交数据。'
-      });
-      return;
-    }
-
-    const newValidAmounts = amounts.filter(amount => amount).map(amount => parseFloat(amount));
-    if (newValidAmounts.length === 0) {
-      setSubmitStatus({
-        success: false,
-        message: '请至少输入一个有效金额。'
-      });
-      return;
-    }
-
-    setValidAmounts(newValidAmounts);
+    setValidAmounts(amounts.filter(amount => amount).map(amount => parseFloat(amount)));
     setShowConfirmDialog(true);
   };
 
   const handleConfirmedSubmit = async () => {
-    const user = getUser();
-    if (!user) return;
+    if (!user || !selectedStoreId) return;
 
     setIsSubmitting(true);
     setSubmitStatus({ success: false, message: '' });
 
     try {
-      const storeId = selectedStoreId === 'all' ? user.storeIds[0] : selectedStoreId;
-      await submitSalesRecords(user.id, storeId, validAmounts);
+      await submitSalesRecords(selectedStoreId, validAmounts);
       setSubmitStatus({ 
         success: true, 
         message: `提交成功！` 
@@ -121,13 +102,11 @@ export default function SalesForm() {
         </CardHeader>
         <form onSubmit={handleFormSubmit}>
           <CardContent className="space-y-3">
-            {hasMultipleStores && (
-              <StoreSelector 
-                value={selectedStoreId}
-                onChange={setSelectedStoreId}
-                className="w-full"
-              />
-            )}
+            <StoreSelector 
+              value={selectedStoreId}
+              onChange={setSelectedStoreId}
+              className="w-full"
+            />
             {amounts.map((amount, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <Input

@@ -237,13 +237,24 @@ function ManagerView({ user }: { user: User }) {
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setUser(getUser());
+    const currentUser = getUser();
+    setUser(currentUser);
+    setLoading(false);
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div className="text-center py-10">请先登录</div>;
+    return null; // RouteGuard 会处理重定向
   }
 
   return (

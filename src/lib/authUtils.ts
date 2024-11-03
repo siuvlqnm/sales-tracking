@@ -42,12 +42,6 @@ export function isTokenExpired(): boolean {
 
 // 从 JWT token 中解析用户信息
 export function getUser(): User | null {
-  if (isTokenExpired()) {
-    clearAuth();
-    window.location.href = '/auth'; // 重定向到登录页
-    return null;
-  }
-
   const token = localStorage.getItem('token');
   if (!token) return null;
 
@@ -57,6 +51,13 @@ export function getUser(): User | null {
 
     const decodedPayload = JSON.parse(base64UrlDecode(payload));
     
+    // 检查 token 是否过期
+    if (decodedPayload.exp && decodedPayload.exp * 1000 < Date.now()) {
+      clearAuth();
+      // 移除自动重定向
+      return null;
+    }
+
     return decodedPayload.user;
   } catch (e) {
     console.error('解析用户信息失败:', e);

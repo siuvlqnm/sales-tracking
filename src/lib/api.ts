@@ -66,16 +66,14 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
   return response.json();
 }
 
-// 修改其他 API 调用函数，使用 getAuthHeader
+// 提交销售记录
 export async function submitSalesRecords(
-  userId: string,
   storeId: string,
   amounts: number[]
 ): Promise<void> {
   const response = await fetchWithAuth('/api/v1/sales/form', {
     method: 'POST',
     body: JSON.stringify({
-      user_id: userId,
       store_id: storeId,
       amounts: amounts,
       timestamp: new Date().toISOString()
@@ -87,84 +85,36 @@ export async function submitSalesRecords(
   }
 }
 
+// 查询销售记录
 interface SalesRecordQuery {
   date?: Date;
-  salesperson?: string;
   storeId?: string;
 }
 
-// 获取销售记录
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   const queryParams = new URLSearchParams();
   if (params.date) {
     queryParams.set('date', params.date.toISOString().split('T')[0]);
   }
-  if (params.salesperson) {
-    queryParams.set('salesperson', params.salesperson);
-  }
   if (params.storeId && params.storeId !== 'all') {
     queryParams.set('store_id', params.storeId);
   }
 
-  const response = await fetchWithAuth(`/api/v1/sales?${queryParams.toString()}`);
+  const response = await fetchWithAuth(`/api/v1/sales/query?${queryParams.toString()}`);
   return response.json();
 }
 
-// 获取销售统计
-export async function getSalesStatistics(params: {
-  storeId: string;
-  startDate: string;
-  endDate: string;
-}): Promise<{
-  totalAmount: number;
-  recordCount: number;
-  dailyStats: Array<{
-    date: string;
-    amount: number;
-    count: number;
-  }>;
-}> {
+// Add this type definition before the getChartData function
+export type ChartData = {
+  dailySales: Array<{ date: string; total: number }>;
+  topSalespeople?: Array<{ name: string; total: number }>;
+  productPerformance: Array<{ amount: number; count: number }>;
+};
 
-  try {
-    const queryParams = new URLSearchParams({
-      store_id: params.storeId,
-      start_date: params.startDate,
-      end_date: params.endDate,
-    });
-
-    const response = await fetchWithAuth(
-      `/api/v1/sales/statistics?${queryParams.toString()}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        }
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '获取统计数据失败');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error('获取销售统计过程中发生错误：', error);
-    throw new Error('获取销售统计失败，请重试。');
-  }
-}
-
-export interface ChartData {
-  dailySales: { date: string; total: number }[];
-  topSalespeople: { name: string; total: number }[];
-  productPerformance: { amount: number; count: number }[];
-}
-
+// 获取图表数据
 export async function getChartData(params: {
   startDate: string;
   endDate: string;
-  userId?: string;
-  role?: string;
   storeId?: string;
 }): Promise<ChartData> {
   try {
@@ -173,49 +123,32 @@ export async function getChartData(params: {
       end_date: params.endDate,
     });
     
-    if (params.userId) queryParams.set('user_id', params.userId);
-    if (params.role) queryParams.set('role', params.role);
     if (params.storeId) queryParams.set('store_id', params.storeId);
 
-    const response = await fetchWithAuth(
-      `/api/v1/sales/charts?${queryParams.toString()}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        }
-      }
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '获取图表数据失败');
-    }
-
-    return await response.json();
+    const response = await fetchWithAuth(`/api/v1/sales/charts?${queryParams.toString()}`);
+    return response.json();
   } catch (error) {
     console.error('获取图表数据过程中发生错误：', error);
     throw new Error('获取图表数据失败，请重试。');
   }
 }
 
-export interface DashboardData {
+// 获取仪表盘数据
+export type DashboardData = {
   performance: {
     monthlySales: number;
     monthlyOrders: number;
   };
-  recentSales: {
+  recentSales: Array<{
     id: string;
-    user_name: string;
-    store_name: string;
-    amount: number;
     date: string;
-  }[];
-  topSalespeople: {
+    amount: number;
+  }>;
+  topSalespeople: Array<{
     name: string;
     sales: number;
-  }[];
-}
+  }>;
+};
 
 export async function getDashboardData(params: {
   userId?: string;
@@ -223,27 +156,15 @@ export async function getDashboardData(params: {
 }): Promise<DashboardData> {
   try {
     const queryParams = new URLSearchParams();
-    if (params.userId) queryParams.set('user_id', params.userId);
-    if (params.storeId && params.storeId !== 'all') {
+    if (params?.storeId && params.storeId !== 'all') {
       queryParams.set('store_id', params.storeId);
     }
 
     const response = await fetchWithAuth(
-      `/api/v1/sales/dashboard?${queryParams.toString()}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        }
-      }
+      `/api/v1/sales/dashboard?${queryParams.toString()}`
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || '获取数据失败');
-    }
-
-    return await response.json();
+    return response.json();
   } catch (error) {
     console.error('获取仪表盘数据过程中发生错误：', error);
     throw new Error('获取仪表盘数据失败，请重试。');

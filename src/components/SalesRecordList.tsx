@@ -8,32 +8,24 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
 import { getUser } from '@/lib/authUtils';
 import { querySalesRecords, type SalesRecord } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesRecordList() {
-  const user = getUser();
-  const isManager = user?.role === 'manager';
-  const [userStoreIds] = useState(user?.storeIds || []);
-
   const [records, setRecords] = useState<SalesRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [salesperson, setSalesperson] = useState('');
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(
-    userStoreIds.length === 1 ? userStoreIds[0] : 'all'
-  );
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
+  const user = getUser();
 
   const fetchRecords = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user) return;
     
     try {
       setLoading(true);
       const data = await querySalesRecords({
         date,
-        salesperson: isManager ? salesperson : undefined,
         storeId: selectedStoreId
       });
       setRecords(data);
@@ -42,20 +34,26 @@ export default function SalesRecordList() {
     } finally {
       setLoading(false);
     }
-  }, [date, salesperson, selectedStoreId, user?.id, isManager]);
+  }, [date, selectedStoreId, user]);
 
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
 
+  useEffect(() => {
+    if (user?.storeIds.length === 1) {
+      setSelectedStoreId(user.storeIds[0]);
+    }
+  }, [user]);
+
   if (!user) {
-    return <div className="text-center py-10">请先登录</div>;
+    return null;
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">成交记录</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -78,14 +76,6 @@ export default function SalesRecordList() {
             />
           </PopoverContent>
         </Popover>
-        
-        {isManager && (
-          <Input
-            placeholder="输入老师ID查询"
-            value={salesperson}
-            onChange={(e) => setSalesperson(e.target.value)}
-          />
-        )}
 
         <StoreSelector 
           value={selectedStoreId}
