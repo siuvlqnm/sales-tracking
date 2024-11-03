@@ -29,16 +29,34 @@ export async function onRequest(context) {
         ORDER BY u.created_at DESC
       `).all();
 
-      // 处理结果，将门店信息转换为数组
-      const formattedUsers = users.results.map(user => ({
-        ...user,
-        stores: user.store_ids ? user.store_ids.split(',').map((store_id, index) => ({
-          store_id,
-          store_name: user.store_names.split(',')[index]
-        })) : []
+      // 处理结果，将门店信息转换为数组，添加更多的空值检查
+      const formattedUsers = users.results.map(user => {
+        // 确保 store_ids 和 store_names 存在且不为空
+        const store_ids = user.store_ids ? user.store_ids.split(',').filter(Boolean) : [];
+        const store_names = user.store_names ? user.store_names.split(',').filter(Boolean) : [];
+        
+        return {
+          ...user,
+          // 确保返回的是有效的数组
+          stores: store_ids.length > 0 
+            ? store_ids.map((store_id, index) => ({
+                store_id: store_id || '',
+                store_name: store_names[index] || ''
+              }))
+            : [] // 如果没有门店，返回空数组
+        };
+      });
+
+      // 在返回之前检查数据格式
+      const safeFormattedUsers = formattedUsers.map(user => ({
+        user_id: user.user_id || '',
+        user_name: user.user_name || '',
+        created_at: user.created_at || '',
+        role_id: user.role_id || null,
+        stores: Array.isArray(user.stores) ? user.stores : []
       }));
 
-      return new Response(JSON.stringify(formattedUsers), {
+      return new Response(JSON.stringify(safeFormattedUsers), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
