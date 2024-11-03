@@ -54,13 +54,13 @@ export async function onRequest(context) {
       const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
       const payload = btoa(JSON.stringify({
         user,
-        exp: Math.floor(Date.now() / 1000) + (env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
+        exp: Math.floor(Date.now() / 1000) + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
       }));
       
       const message = `${header}.${payload}`;
       const key = await crypto.subtle.importKey(
         'raw',
-        encoder.encode(env.JWT_SECRET),
+        encoder.encode(context.env.JWT_SECRET),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign']
