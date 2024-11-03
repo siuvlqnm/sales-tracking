@@ -34,10 +34,10 @@ const getAuthToken = () => {
   return null;
 };
 
-const baseHeaders = {
+const getBaseHeaders = () => ({
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${getAuthToken()}`
-};
+});
 
 // 验证规则
 const loginSchema = z.object({
@@ -170,7 +170,7 @@ export async function addStore(storeName: string): Promise<Store> {
 export async function getStores(): Promise<Store[]> {
   try {
     const response = await fetch('/api/v1/admin/stores', {
-      headers: baseHeaders,
+      headers: getBaseHeaders(),
     });
 
     if (!response.ok) {
@@ -197,7 +197,7 @@ export async function addUser(userName: string): Promise<User> {
 
     const response = await fetch('/api/v1/admin/users', {
       method: 'POST',
-      headers: baseHeaders,
+      headers: getBaseHeaders(),
       body: JSON.stringify({
         user_id: generateId(),
         user_name: userName.trim(),
@@ -229,7 +229,7 @@ export async function addUser(userName: string): Promise<User> {
 export async function getUsers(): Promise<User[]> {
   try {
     const response = await fetch('/api/v1/admin/users', {
-      headers: baseHeaders,
+      headers: getBaseHeaders(),
     });
 
     if (!response.ok) {
@@ -258,7 +258,7 @@ export async function assignRole(
 
     const response = await fetch('/api/v1/admin/roles', {
       method: 'POST',
-      headers: baseHeaders,
+      headers: getBaseHeaders(),
       body: JSON.stringify({
         user_id: userId,
         role_id: roleId,
@@ -292,15 +292,16 @@ export async function assignStore(
   storeIds: string[]
 ): Promise<User> {
   try {
-    // 修改验证规则
+    // 修改验证规则，移除 .min(1) 限制
     z.object({
       user_id: z.string().min(1, '请选择员工'),
-      store_ids: z.array(z.string()).min(1, '请至少选择一个门店')
+      // store_ids: z.array(z.string()).min(1, '请至少选择一个门店')
+      store_ids: z.array(z.string()) // 允许空数组
     }).parse({ user_id: userId, store_ids: storeIds });
 
     const response = await fetch('/api/v1/admin/stores/assign', {
       method: 'POST',
-      headers: baseHeaders,
+      headers: getBaseHeaders(),
       body: JSON.stringify({
         user_id: userId,
         store_ids: storeIds,
