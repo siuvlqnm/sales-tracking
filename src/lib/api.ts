@@ -1,16 +1,5 @@
 import { getAuthHeader } from './authUtils';
 
-// API 响应类型定义
-interface AuthResponse {
-  user_id: string;
-  user_name: string;
-  stores: Array<{
-    store_id: string;
-    store_name: string;
-  }>;
-  role_id: number;
-}
-
 export type SalesRecord = {
   id: string;
   user_name: string;
@@ -69,28 +58,32 @@ export async function submitSalesRecords(
   }
 }
 
-// 查询销售记录
-export async function querySalesRecords(params: {
-  userId?: string;
+interface SalesRecordQuery {
+  date?: Date;
+  salesperson?: string;
   storeId?: string;
-  startDate?: string;
-  endDate?: string;
-}): Promise<SalesRecord[]> {
+}
 
+// 获取销售记录
+export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   try {
     const queryParams = new URLSearchParams();
-    if (params.userId) queryParams.set('user_id', params.userId);
-    if (params.storeId) queryParams.set('store_id', params.storeId);
-    if (params.startDate) queryParams.set('start_date', params.startDate);
-    if (params.endDate) queryParams.set('end_date', params.endDate);
+    if (params.date) {
+      queryParams.set('date', params.date.toISOString().split('T')[0]);
+    }
+    if (params.salesperson) {
+      queryParams.set('salesperson', params.salesperson);
+    }
+    if (params.storeId && params.storeId !== 'all') {
+      queryParams.set('store_id', params.storeId);
+    }
 
-    const response = await fetch(
-      `/api/v1/sales/query?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+    const response = await fetch(`/api/v1/sales?${queryParams.toString()}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader()
       }
-    );
+    });
 
     if (!response.ok) {
       const error = await response.json();
@@ -99,10 +92,10 @@ export async function querySalesRecords(params: {
 
     return await response.json();
   } catch (error) {
-    console.error('查询销售记录过程中发生错误：', error);
-    throw new Error('查询销售记录失败，请重试。');
+    console.error('Error fetching records:', error);
+    throw new Error('获取销售记录失败，请重试');
   }
-}
+} 
 
 // 获取销售统计
 export async function getSalesStatistics(params: {
@@ -129,8 +122,10 @@ export async function getSalesStatistics(params: {
     const response = await fetch(
       `/api/v1/sales/statistics?${queryParams.toString()}`,
       {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
       }
     );
 
@@ -172,8 +167,10 @@ export async function getChartData(params: {
     const response = await fetch(
       `/api/v1/sales/charts?${queryParams.toString()}`,
       {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
       }
     );
 
@@ -221,8 +218,10 @@ export async function getDashboardData(params: {
     const response = await fetch(
       `/api/v1/sales/dashboard?${queryParams.toString()}`,
       {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
       }
     );
 
@@ -236,4 +235,4 @@ export async function getDashboardData(params: {
     console.error('获取仪表盘数据过程中发生错误：', error);
     throw new Error('获取仪表盘数据失败，请重试。');
   }
-} 
+}

@@ -41,7 +41,7 @@ export function clearAuth(): void {
 }
 
 // 获取认证头
-export function getAuthHeader(): { Authorization: string } | {} {
+export function getAuthHeader(): { Authorization: string } | Record<string, never> {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
 } 

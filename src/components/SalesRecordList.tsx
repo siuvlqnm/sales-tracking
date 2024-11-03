@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { getUser } from '@/lib/authUtils';
-import type { SalesRecord } from '@/lib/api';
+import { querySalesRecords, type SalesRecord } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesRecordList() {
@@ -31,23 +31,18 @@ export default function SalesRecordList() {
     
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/sales', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
+      const data = await querySalesRecords({
+        date,
+        salesperson: isManager ? salesperson : undefined,
+        storeId: selectedStoreId
       });
-      
-      if (!response.ok) throw new Error('获取数据失败');
-      
-      const data = await response.json();
       setRecords(data);
     } catch (error) {
       console.error('Error fetching records:', error);
     } finally {
       setLoading(false);
     }
-  }, [selectedStoreId, user?.id]);
+  }, [date, salesperson, selectedStoreId, user?.id, isManager]);
 
   useEffect(() => {
     fetchRecords();
