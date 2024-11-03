@@ -67,6 +67,10 @@ export function getUser(): User | null {
 
 // 保存认证信息
 export function setAuth(token: string): void {
+  if (!token) {
+    console.error('Attempting to set empty token');
+    return;
+  }
   localStorage.setItem('token', token);
 }
 

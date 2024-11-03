@@ -57,13 +57,25 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 // 认证用户
 export async function authenticateUser(trackingId: string): Promise<{token: string}> {
   const response = await fetch('/api/v1/auth', {
-    ...baseConfig,
     method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify({ user_id: trackingId }),
   });
 
-  if (!response.ok) throw new Error('认证失败');
-  return response.json();
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || '认证失败');
+  }
+
+  const data = await response.json();
+  
+  if (!data.token) {
+    throw new Error('未收到有效的 token');
+  }
+
+  return data;
 }
 
 // 提交销售记录
