@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQueries, setSearchQueries] = useState<{ [key: string]: string }>({});
 
   // 检查管理员认证
   useEffect(() => {
@@ -225,16 +225,22 @@ export default function AdminPage() {
                           <Command>
                             <CommandInput 
                               placeholder="搜索门店..." 
-                              value={searchQuery}
-                              onValueChange={setSearchQuery}
+                              value={searchQueries[user.user_id] || ''}
+                              onValueChange={(value) => 
+                                setSearchQueries(prev => ({
+                                  ...prev,
+                                  [user.user_id]: value
+                                }))
+                              }
                             />
                             <CommandList>
                               <CommandEmpty>未找到门店</CommandEmpty>
-                              <CommandGroup>
+                              <CommandGroup heading="可选门店">
                                 {stores
-                                  .filter(store => 
-                                    store.store_name.toLowerCase().includes(searchQuery.toLowerCase())
-                                  )
+                                  .filter(store => {
+                                    const query = searchQueries[user.user_id]?.toLowerCase() || '';
+                                    return store.store_name.toLowerCase().includes(query);
+                                  })
                                   .map((store) => {
                                     const isSelected = user.stores?.some(
                                       s => s.store_id === store.store_id
@@ -243,13 +249,17 @@ export default function AdminPage() {
                                     return (
                                       <CommandItem
                                         key={store.store_id}
-                                        value={store.store_id}
+                                        value={store.store_name}
                                         onSelect={() => {
                                           const currentStoreIds = user.stores?.map(s => s.store_id) || [];
                                           const newStoreIds = isSelected
                                             ? currentStoreIds.filter(id => id !== store.store_id)
                                             : [...currentStoreIds, store.store_id];
                                           handleStoreChange(user.user_id, newStoreIds);
+                                          setSearchQueries(prev => ({
+                                            ...prev,
+                                            [user.user_id]: ''
+                                          }));
                                         }}
                                       >
                                         <div className="flex items-center">
