@@ -1,40 +1,15 @@
+import { adminAuthMiddleware } from '../../../middleware/adminAuth';
+
 export async function onRequest(context) {
   const { request, env } = context;
   
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-
-  // 处理 OPTIONS 请求
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // 使用中间件验证
+  const authResult = await adminAuthMiddleware(request, env);
+  if (authResult instanceof Response) {
+    return authResult;
   }
-
-  // 验证管理员 token
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(JSON.stringify({ message: '未授权访问' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-
-  const token = authHeader.split(' ')[1];
-  const db = context.env.salesTrackingDB;
-
-  // 验证 token
-  const admin = await db.prepare(
-    'SELECT * FROM admins WHERE token = ? AND token_expires > datetime("now")'
-  ).bind(token).first();
-
-  if (!admin) {
-    return new Response(JSON.stringify({ message: '无效或过期的 token' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
+  const { corsHeaders } = authResult;
+  const db = env.salesTrackingDB;
 
   try {
     if (request.method === 'GET') {

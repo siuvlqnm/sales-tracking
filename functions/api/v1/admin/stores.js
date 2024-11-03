@@ -3,19 +3,12 @@ import { adminAuthMiddleware } from '../../../middleware/adminAuth';
 export async function onRequest(context) {
   const { request, env } = context;
   
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // 使用中间件验证
+  const authResult = await adminAuthMiddleware(request, env);
+  if (authResult instanceof Response) {
+    return authResult;
   }
-
-  // 验证管理员权限
-  const authError = await adminAuthMiddleware(request, env);
-  if (authError) return authError;
+  const { corsHeaders } = authResult;
 
   const db = context.env.salesTrackingDB;
 

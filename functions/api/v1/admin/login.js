@@ -55,7 +55,7 @@ export async function onRequest(context) {
         id: admin.id,
         username: admin.username,
         role: 'admin',
-        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24小时后过期
+        exp: Math.floor(Date.now() / 1000) + (context.env.ADMIN_TOKEN_EXPIRES_HOURS * 60 * 60) // 使用环境变量
       }));
       
       const message = `${header}.${payload}`;
@@ -78,13 +78,13 @@ export async function onRequest(context) {
       // 更新数据库中的 token
       await db.prepare(`
         UPDATE admins 
-        SET token = ?, token_expires = datetime('now', '+24 hours')
+        SET token = ?, token_expires = datetime('now', '+8 hours', '+' || ? || ' hours')
         WHERE id = ?
-      `).bind(token, admin.id).run();
+      `).bind(token, context.env.ADMIN_TOKEN_EXPIRES_HOURS, admin.id).run();
 
       return new Response(JSON.stringify({
         token,
-        expiresIn: 24 * 60 * 60 * 1000 // 24小时
+        expiresIn: context.env.ADMIN_TOKEN_EXPIRES_HOURS * 60 * 60 * 1000 // 转换为毫秒
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
