@@ -36,17 +36,45 @@ export async function onRequest(context) {
         });
       }
 
-      const response = {
-        user_id: userInfo.user_id,
-        user_name: userInfo.user_name,
-        role_id: userInfo.role_id,
-        stores: userInfo.store_ids.split(',').map((store_id, index) => ({
-          store_id,
-          store_name: userInfo.store_names.split(',')[index]
-        }))
+      const user = {
+        id: userInfo.user_id,
+        name: userInfo.user_name,
+        role: userInfo.role_id === 1 ? 'manager' : 'salesperson',
+        storeIds: userInfo.store_ids.split(','),
+        storeNames: Object.fromEntries(
+          userInfo.store_ids.split(',').map((id, index) => [
+            id,
+            userInfo.store_names.split(',')[index]
+          ])
+        )
       };
 
-      return new Response(JSON.stringify(response), {
+      // JWT 签名
+      const encoder = new TextEncoder();
+      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = btoa(JSON.stringify({
+        user,
+        exp: Math.floor(Date.now() / 1000) + (env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
+      }));
+      
+      const message = `${header}.${payload}`;
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(env.JWT_SECRET),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      
+      const signature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(message)
+      );
+      
+      const token = `${message}.${btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '')}`;
+
+      return new Response(JSON.stringify({ token }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });

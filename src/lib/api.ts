@@ -1,4 +1,4 @@
-import type { User } from './cookieUtils';
+import { getAuthHeader } from './authUtils';
 
 // API 响应类型定义
 interface AuthResponse {
@@ -20,7 +20,7 @@ export type SalesRecord = {
 }
 
 // 认证用户
-export async function authenticateUser(trackingId: string): Promise<User> {
+export async function authenticateUser(trackingId: string): Promise<{token: string}> {
   try {
     const response = await fetch(`/api/v1/auth`, {
       method: 'POST',
@@ -30,42 +30,32 @@ export async function authenticateUser(trackingId: string): Promise<User> {
 
     if (!response.ok) throw new Error('认证失败');
 
-    const data: AuthResponse = await response.json();
-    return {
-      id: data.user_id,
-      name: data.user_name,
-      role: data.role_id === 1 ? 'manager' : 'salesperson',
-      storeIds: data.stores.map(store => store.store_id),
-      storeNames: Object.fromEntries(
-        data.stores.map(store => [store.store_id, store.store_name])
-      ),
-    };
+    const data = await response.json();
+    return { token: data.token };
   } catch (error) {
     console.error('认证过程中发生错误：', error);
     throw new Error('获取用户信息失败，请重试。');
   }
 }
 
-// 提交销售记录
+// 修改其他 API 调用函数，使用 getAuthHeader
 export async function submitSalesRecords(
   userId: string,
   storeId: string,
   amounts: number[]
 ): Promise<void> {
   try {
-    // 获取北京时间
-    const now = new Date();
-    const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-    const timestamp = beijingTime.toISOString();
-
     const response = await fetch(`/api/v1/sales/form`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...getAuthHeader()
+      },
       body: JSON.stringify({
         user_id: userId,
         store_id: storeId,
         amounts: amounts,
-        timestamp: timestamp
+        timestamp: new Date().toISOString()
       }),
     });
 

@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getUser } from '@/lib/cookieUtils';
+import { getUser } from '@/lib/authUtils';
 import { submitSalesRecords } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 

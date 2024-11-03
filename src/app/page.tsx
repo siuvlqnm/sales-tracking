@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getDashboardData, type DashboardData } from '@/lib/api';
 import { Loader2 } from "lucide-react"; 
-import { User } from '@/lib/cookieUtils';
+import { User } from '@/lib/authUtils';
 import { StoreSelector } from '@/components/ui/store-selector';
+import { getUser } from '@/lib/authUtils';
 
 // 销售人员视图
 function SalespersonView({ user }: { user: User }) {
@@ -238,17 +239,7 @@ export default function Home() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const getCookieUser = () => {
-      const userCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('user='));
-      if (userCookie) {
-        return JSON.parse(decodeURIComponent(userCookie.split('=')[1]));
-      }
-      return null;
-    };
-
-    setUser(getCookieUser());
+    setUser(getUser());
   }, []);
 
   if (!user) {

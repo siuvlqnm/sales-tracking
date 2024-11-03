@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { getChartData, type ChartData } from '@/lib/api';
-import { getUser } from '@/lib/cookieUtils';
+import { getUser } from '@/lib/authUtils';
 import { Loader2 } from "lucide-react";
 import { StoreSelector } from '@/components/ui/store-selector';
 

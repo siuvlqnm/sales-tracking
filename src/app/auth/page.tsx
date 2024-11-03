@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { authenticateUser } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { setAuth } from '@/lib/authUtils';
 
 export default function AuthPage() {
   const [trackingId, setTrackingId] = useState('');
@@ -19,15 +20,18 @@ export default function AuthPage() {
     setLoading(true);
 
     try {
-      const user = await authenticateUser(trackingId);
-      // 设置 cookie 时添加更多选项
-      document.cookie = `user=${JSON.stringify(user)}; path=/; max-age=86400; samesite=lax`;
+      const { token } = await authenticateUser(trackingId);
+      
+      // 只需要保存 token，用户信息已包含在 token 中
+      setAuth(token);
       
       toast({
         title: "验证成功",
         description: "正在跳转...",
       });
 
+      // 触发认证状态更新
+      window.dispatchEvent(new Event('auth-change'));
       router.push('/');
     } catch (error) {
       toast({

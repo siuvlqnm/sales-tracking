@@ -3,40 +3,27 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { getUser, type User } from '@/lib/authUtils';
 
 const Navbar = () => {
   const pathname = usePathname();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const checkUser = () => {
-      const getCookieUser = () => {
-        const userCookie = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('user='));
-        if (userCookie) {
-          return JSON.parse(userCookie.split('=')[1]);
-        }
-        return null;
-      };
-
-      setUser(getCookieUser());
+      setUser(getUser());
     };
 
     checkUser();
-
-    window.addEventListener('storage', checkUser);
+    // 监听登录状态变化
+    window.addEventListener('auth-change', checkUser);
 
     return () => {
-      window.removeEventListener('storage', checkUser);
+      window.removeEventListener('auth-change', checkUser);
     };
   }, []);
 
-  if (!user) {
-    return null;
-  }
-
-  if (pathname?.startsWith('/admin')) {
+  if (!user || pathname?.startsWith('/admin')) {
     return null;
   }
 

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { Loader2 } from "lucide-react"; // 如果你使用 lucide-react 图标
+import { Loader2 } from "lucide-react";
+import { getUser } from '@/lib/authUtils';
 
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -17,20 +18,13 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     // 检查用户是否登录
-    const getCookieUser = () => {
-      const userCookie = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('user='));
-      return userCookie ? JSON.parse(userCookie.split('=')[1]) : null;
-    };
-
-    const user = getCookieUser();
+    const user = getUser();
     if (!user) {
       router.push('/auth');
     } else {
       setLoading(false);
-      // 触发一个事件通知 cookie 已更新
-      window.dispatchEvent(new Event('storage'));
+      // 触发一个事件通知认证状态已更新
+      window.dispatchEvent(new Event('auth-change'));
     }
   }, [pathname, router]);
 

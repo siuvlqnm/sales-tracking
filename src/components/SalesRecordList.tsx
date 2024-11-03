@@ -9,7 +9,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { getUser } from '@/lib/cookieUtils';
+import { getUser } from '@/lib/authUtils';
 import type { SalesRecord } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
@@ -34,7 +34,7 @@ export default function SalesRecordList() {
       const response = await fetch('/api/v1/sales', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Store-Id': selectedStoreId === 'all' ? userStoreIds[0] : selectedStoreId
+          'Content-Type': 'application/json'
         }
       });
       
@@ -47,7 +47,7 @@ export default function SalesRecordList() {
     } finally {
       setLoading(false);
     }
-  }, [selectedStoreId, user?.id, userStoreIds]);
+  }, [selectedStoreId, user?.id]);
 
   useEffect(() => {
     fetchRecords();

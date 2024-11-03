@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUser } from '@/lib/cookieUtils';
+import { getUser } from '@/lib/authUtils';
 
 interface StoreSelectorProps {
   value: string;
