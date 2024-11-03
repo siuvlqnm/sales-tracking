@@ -22,28 +22,21 @@ export async function onRequest(context) {
         });
       }
 
-      // 开始事务
-      await db.prepare('BEGIN TRANSACTION').run();
-
-      try {
-        // 删除用户现有的所有门店分配
-        await db.prepare(
-          'DELETE FROM user_stores WHERE user_id = ?'
-        ).bind(user_id).run();
-
-        // 添加新的门店分配
-        for (const store_id of store_ids) {
-          await db.prepare(`
+      // 使用 D1 事务 API
+      const updatedUser = await db.batch([
+        // 首先删除现有的门店分配
+        db.prepare('DELETE FROM user_stores WHERE user_id = ?').bind(user_id),
+        
+        // 然后添加新的门店分配
+        ...store_ids.map(store_id => 
+          db.prepare(`
             INSERT INTO user_stores (user_id, store_id, created_at) 
             VALUES (?, ?, datetime('now', '+8 hours'))
-          `).bind(user_id, store_id).run();
-        }
-
-        // 提交事务
-        await db.prepare('COMMIT').run();
-
-        // 获取更新后的用户信息
-        const updatedUser = await db.prepare(`
+          `).bind(user_id, store_id)
+        ),
+        
+        // 最后获取更新后的用户信息
+        db.prepare(`
           SELECT 
             u.user_id, 
             u.user_name, 
@@ -56,18 +49,27 @@ export async function onRequest(context) {
           LEFT JOIN stores s ON us.store_id = s.store_id
           WHERE u.user_id = ?
           GROUP BY u.user_id
-        `).bind(user_id).first();
+        `).bind(user_id)
+      ]);
 
-        return new Response(JSON.stringify(updatedUser), {
-          status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+      // 获取最后一个查询的结果（更新后的用户信息）
+      const userData = updatedUser[updatedUser.length - 1];
 
-      } catch (error) {
-        // 如果出错，回滚事务
-        await db.prepare('ROLLBACK').run();
-        throw error;
-      }
+      // 处理返回的数据格式
+      const formattedUser = {
+        ...userData,
+        stores: userData.store_ids 
+          ? userData.store_ids.split(',').map((store_id, index) => ({
+              store_id,
+              store_name: userData.store_names.split(',')[index]
+            }))
+          : []
+      };
+
+      return new Response(JSON.stringify(formattedUser), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
     return new Response('Method Not Allowed', {

@@ -207,8 +207,8 @@ export default function AdminPage() {
                             className="w-full justify-between"
                           >
                             {user.stores?.length 
-                              // ? `${user.stores.length} 个门店`
-                              ? `${user.stores.map(s => s.store_name).join(', ')}`
+                              ? `${user.stores.length} 个门店`
+                              // ? `${user.stores.map(s => s.store_name).join(', ')}`
                               : "选择门店"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
