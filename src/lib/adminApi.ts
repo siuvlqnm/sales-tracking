@@ -68,11 +68,6 @@ const roleSchema = z.object({
   role_id: z.number().int().min(1).max(2, '无效的角色ID')
 });
 
-const storeAssignmentSchema = z.object({
-  user_id: z.string().min(1, '请选择员工'),
-  store_id: z.string().min(1, '请选择门店')
-});
-
 // 管理员登录
 export async function adminLogin(username: string, password: string) {
   try {
@@ -291,38 +286,42 @@ export async function assignRole(
   }
 }
 
-// 添加新的门店分配函数
+// 更新门店分配
 export async function assignStore(
   userId: string,
-  storeId: string
-): Promise<StoreAssignment> {
+  storeIds: string[]
+): Promise<User> {
   try {
-    storeAssignmentSchema.parse({ user_id: userId, store_id: storeId });
+    // 修改验证规则
+    z.object({
+      user_id: z.string().min(1, '请选择员工'),
+      store_ids: z.array(z.string()).min(1, '请至少选择一个门店')
+    }).parse({ user_id: userId, store_ids: storeIds });
 
     const response = await fetch('/api/v1/admin/stores/assign', {
       method: 'POST',
       headers: baseHeaders,
       body: JSON.stringify({
         user_id: userId,
-        store_id: storeId,
+        store_ids: storeIds,
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || '分配门店失败');
+      throw new Error(error.message || '门店分配失败');
     }
 
     const data = await response.json();
     toast({
       title: "成功",
-      description: "门店分配成功",
+      description: "门店分配已更新",
     });
     return data;
   } catch (error) {
     toast({
       title: "错误",
-      description: error instanceof Error ? error.message : '分配门店失败',
+      description: error instanceof Error ? error.message : '门店分配失败',
       variant: "destructive",
     });
     throw error;

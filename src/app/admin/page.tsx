@@ -10,6 +10,20 @@ import { Toaster } from '@/components/ui/toaster';
 import { addStore, addUser, assignRole, getStores, getUsers, assignStore } from '@/lib/adminApi';
 import type { Store, User } from '@/lib/adminApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Check, ChevronsUpDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 // import { useToast } from '@/components/ui/use-toast';
 
 export default function AdminPage() {
@@ -22,14 +36,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [roleAssignment, setRoleAssignment] = useState({
-    userId: '',
-    roleId: '',
-  });
-  const [storeAssignment, setStoreAssignment] = useState({
-    userId: '',
-    storeId: '',
-  });
 
   // 检查管理员认证
   useEffect(() => {
@@ -97,42 +103,6 @@ export default function AdminPage() {
     }
   };
 
-  // 分配角色
-  const handleAssignRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await assignRole(
-        roleAssignment.userId, 
-        parseInt(roleAssignment.roleId)
-      );
-      setRoleAssignment({ userId: '', roleId: '' });
-      refreshData();
-    } catch (error) {
-      console.error('分配角色失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 分配门店
-  const handleAssignStore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await assignStore(
-        storeAssignment.userId,
-        storeAssignment.storeId
-      );
-      setStoreAssignment({ userId: '', storeId: '' });
-      refreshData();
-    } catch (error) {
-      console.error('分配门店失败:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Move handleRoleChange inside the component
   const handleRoleChange = async (userId: string, roleId: number) => {
     try {
@@ -140,6 +110,15 @@ export default function AdminPage() {
       refreshData(); // Now has access to refreshData
     } catch (error) {
       console.error('修改角色失败:', error);
+    }
+  };
+
+  const handleStoreChange = async (userId: string, storeIds: string[]) => {
+    try {
+      await assignStore(userId, storeIds);
+      refreshData();
+    } catch (error) {
+      console.error('修改门店分配失败:', error);
     }
   };
 
@@ -201,99 +180,6 @@ export default function AdminPage() {
               </form>
             </CardContent>
           </Card>
-
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle>分配角色</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAssignRole} className="space-y-4">
-                <Select 
-                  value={roleAssignment.userId} 
-                  onValueChange={(value) => setRoleAssignment(prev => ({ ...prev, userId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择员工" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.user_id} value={user.user_id}>
-                        {user.user_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select 
-                  value={roleAssignment.roleId}
-                  onValueChange={(value) => setRoleAssignment(prev => ({ ...prev, roleId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择角色" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">店长</SelectItem>
-                    <SelectItem value="2">销售</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  type="submit"
-                  disabled={loading || !roleAssignment.userId || !roleAssignment.roleId}
-                >
-                  分配角色
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>分配门店</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAssignStore} className="space-y-4">
-                <Select 
-                  value={storeAssignment.userId}
-                  onValueChange={(value) => setStoreAssignment(prev => ({ ...prev, userId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择员工" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.user_id} value={user.user_id}>
-                        {user.user_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select 
-                  value={storeAssignment.storeId}
-                  onValueChange={(value) => setStoreAssignment(prev => ({ ...prev, storeId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择门店" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {stores.map((store) => (
-                      <SelectItem key={store.store_id} value={store.store_id}>
-                        {store.store_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  type="submit"
-                  disabled={loading || !storeAssignment.userId || !storeAssignment.storeId}
-                >
-                  分配门店
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
         </div>
 
         {/* 添加员工列表展示 */}
@@ -319,7 +205,53 @@ export default function AdminPage() {
                     <TableCell className="font-mono">{user.user_id}</TableCell>
                     <TableCell>{new Date(user.created_at).toLocaleString('zh-CN')}</TableCell>
                     <TableCell>
-                      {user.stores?.map(store => store.store_name).join(', ') || '未分配'}
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between"
+                          >
+                            {user.stores?.length 
+                              ? `${user.stores.length} 个门店`
+                              : "选择门店"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0">
+                          <Command>
+                            <CommandInput placeholder="搜索门店..." />
+                            <CommandEmpty>未找到门店</CommandEmpty>
+                            <CommandGroup>
+                              {stores.map((store) => {
+                                const isSelected = user.stores?.some(
+                                  s => s.store_id === store.store_id
+                                );
+                                return (
+                                  <CommandItem
+                                    key={store.store_id}
+                                    onSelect={() => {
+                                      const currentStoreIds = user.stores?.map(s => s.store_id) || [];
+                                      const newStoreIds = isSelected
+                                        ? currentStoreIds.filter(id => id !== store.store_id)
+                                        : [...currentStoreIds, store.store_id];
+                                      handleStoreChange(user.user_id, newStoreIds);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        isSelected ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {store.store_name}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                     <TableCell>
                       <Select 

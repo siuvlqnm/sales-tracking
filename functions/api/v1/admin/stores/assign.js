@@ -3,7 +3,6 @@ import { adminAuthMiddleware } from '../../../../middleware/adminAuth';
 export async function onRequest(context) {
   const { request, env } = context;
   
-  // 使用中间件验证
   const authResult = await adminAuthMiddleware(request, env);
   if (authResult instanceof Response) {
     return authResult;
@@ -13,62 +12,62 @@ export async function onRequest(context) {
 
   try {
     if (request.method === 'POST') {
-      const { user_id, store_id } = await request.json();
+      const { user_id, store_ids } = await request.json();
 
       // 验证输入
-      if (!user_id || !store_id) {
-        return new Response(JSON.stringify({ message: '用户ID和门店ID不能为空' }), {
+      if (!user_id || !Array.isArray(store_ids)) {
+        return new Response(JSON.stringify({ message: '无效的输入参数' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // 检查用户和门店是否存在
-      const [user, store] = await Promise.all([
-        db.prepare('SELECT user_id FROM users WHERE user_id = ?').bind(user_id).first(),
-        db.prepare('SELECT store_id FROM stores WHERE store_id = ?').bind(store_id).first()
-      ]);
+      // 开始事务
+      await db.prepare('BEGIN TRANSACTION').run();
 
-      if (!user || !store) {
-        return new Response(JSON.stringify({ message: '用户或门店不存在' }), {
-          status: 400,
+      try {
+        // 删除用户现有的所有门店分配
+        await db.prepare(
+          'DELETE FROM user_stores WHERE user_id = ?'
+        ).bind(user_id).run();
+
+        // 添加新的门店分配
+        for (const store_id of store_ids) {
+          await db.prepare(`
+            INSERT INTO user_stores (user_id, store_id, created_at) 
+            VALUES (?, ?, datetime('now', '+8 hours'))
+          `).bind(user_id, store_id).run();
+        }
+
+        // 提交事务
+        await db.prepare('COMMIT').run();
+
+        // 获取更新后的用户信息
+        const updatedUser = await db.prepare(`
+          SELECT 
+            u.user_id, 
+            u.user_name, 
+            u.role_id,
+            u.created_at,
+            GROUP_CONCAT(s.store_id) as store_ids,
+            GROUP_CONCAT(s.store_name) as store_names
+          FROM users u
+          LEFT JOIN user_stores us ON u.user_id = us.user_id
+          LEFT JOIN stores s ON us.store_id = s.store_id
+          WHERE u.user_id = ?
+          GROUP BY u.user_id
+        `).bind(user_id).first();
+
+        return new Response(JSON.stringify(updatedUser), {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
+
+      } catch (error) {
+        // 如果出错，回滚事务
+        await db.prepare('ROLLBACK').run();
+        throw error;
       }
-
-      // 检查是否已经存在相同的分配
-      const existing = await db.prepare(
-        'SELECT id FROM user_stores WHERE user_id = ? AND store_id = ?'
-      ).bind(user_id, store_id).first();
-
-      if (existing) {
-        return new Response(JSON.stringify({ message: '该用户已分配到此门店' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // 添加新的门店分配
-      await db.prepare(`
-        INSERT INTO user_stores (user_id, store_id, created_at) 
-        VALUES (?, ?, datetime('now', '+8 hours'))
-      `).bind(user_id, store_id).run();
-
-      // 获取分配结果
-      const assignment = await db.prepare(`
-        SELECT 
-          id, 
-          user_id, 
-          store_id, 
-          datetime(created_at, '+8 hours') as created_at
-        FROM user_stores
-        WHERE user_id = ? AND store_id = ?
-      `).bind(user_id, store_id).first();
-
-      return new Response(JSON.stringify(assignment), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
     return new Response('Method Not Allowed', {
