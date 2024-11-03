@@ -16,6 +16,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -214,49 +215,57 @@ export default function AdminPage() {
                             className="w-full justify-between"
                           >
                             {user.stores?.length 
-                              ? `${user.stores.length} 个门店`
+                              // ? `${user.stores.length} 个门店`
+                              ? `${user.stores.map(s => s.store_name).join(', ')}`
                               : "选择门店"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[300px] p-0">
-                          <Command shouldFilter={false}>
+                          <Command>
                             <CommandInput 
                               placeholder="搜索门店..." 
                               value={searchQuery}
                               onValueChange={setSearchQuery}
                             />
-                            <CommandEmpty>未找到门店</CommandEmpty>
-                            <CommandGroup>
-                              {stores.filter(store => 
-                                store.store_name.toLowerCase().includes(searchQuery.toLowerCase())
-                              ).map((store) => {
-                                const isSelected = (user.stores || []).some(
-                                  s => s.store_id === store.store_id
-                                );
-                                return (
-                                  <CommandItem
-                                    key={store.store_id}
-                                    value={store.store_id}
-                                    onSelect={() => {
-                                      const currentStoreIds = (user.stores || []).map(s => s.store_id);
-                                      const newStoreIds = isSelected
-                                        ? currentStoreIds.filter(id => id !== store.store_id)
-                                        : [...currentStoreIds, store.store_id];
-                                      handleStoreChange(user.user_id, newStoreIds);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        isSelected ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {store.store_name}
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandEmpty>未找到门店</CommandEmpty>
+                              <CommandGroup>
+                                {stores
+                                  .filter(store => 
+                                    store.store_name.toLowerCase().includes(searchQuery.toLowerCase())
+                                  )
+                                  .map((store) => {
+                                    const isSelected = user.stores?.some(
+                                      s => s.store_id === store.store_id
+                                    ) || false;
+                                    
+                                    return (
+                                      <CommandItem
+                                        key={store.store_id}
+                                        value={store.store_id}
+                                        onSelect={() => {
+                                          const currentStoreIds = user.stores?.map(s => s.store_id) || [];
+                                          const newStoreIds = isSelected
+                                            ? currentStoreIds.filter(id => id !== store.store_id)
+                                            : [...currentStoreIds, store.store_id];
+                                          handleStoreChange(user.user_id, newStoreIds);
+                                        }}
+                                      >
+                                        <div className="flex items-center">
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              isSelected ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          <span>{store.store_name}</span>
+                                        </div>
+                                      </CommandItem>
+                                    );
+                                  })}
+                              </CommandGroup>
+                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
