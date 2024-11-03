@@ -224,14 +224,14 @@ export default function AdminPage() {
                             <CommandEmpty>未找到门店</CommandEmpty>
                             <CommandGroup>
                               {stores.map((store) => {
-                                const isSelected = user.stores?.some(
+                                const isSelected = (user.stores || []).some(
                                   s => s.store_id === store.store_id
                                 );
                                 return (
                                   <CommandItem
                                     key={store.store_id}
                                     onSelect={() => {
-                                      const currentStoreIds = user.stores?.map(s => s.store_id) || [];
+                                      const currentStoreIds = (user.stores || []).map(s => s.store_id);
                                       const newStoreIds = isSelected
                                         ? currentStoreIds.filter(id => id !== store.store_id)
                                         : [...currentStoreIds, store.store_id];
