@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
 import { authenticateUser } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { setAuth } from '@/lib/authUtils';
@@ -13,7 +12,6 @@ export default function AuthPage() {
   const [trackingId, setTrackingId] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,24 +19,10 @@ export default function AuthPage() {
 
     try {
       const { token } = await authenticateUser(trackingId);
-      
-      // 只需要保存 token，用户信息已包含在 token 中
       setAuth(token);
-      
-      toast({
-        title: "验证成功",
-        description: "正在跳转...",
-      });
-
-      // 触发认证状态更新
-      window.dispatchEvent(new Event('auth-change'));
       router.push('/');
-    } catch (error) {
-      toast({
-        title: "验证失败",
-        description: error instanceof Error ? error.message : "请检查您的 Tracking ID",
-        variant: "destructive",
-      });
+    } catch (err) {
+      console.error('Authentication error:', err);
     } finally {
       setLoading(false);
     }
