@@ -133,6 +133,16 @@ export default function AdminPage() {
     }
   };
 
+  // Move handleRoleChange inside the component
+  const handleRoleChange = async (userId: string, roleId: number) => {
+    try {
+      await assignRole(userId, roleId);
+      refreshData(); // Now has access to refreshData
+    } catch (error) {
+      console.error('修改角色失败:', error);
+    }
+  };
+
   // 如果正在加载，显示加载指示器
   if (isLoading) {
     return (
@@ -312,9 +322,22 @@ export default function AdminPage() {
                       {user.stores?.map(store => store.store_name).join(', ') || '未分配'}
                     </TableCell>
                     <TableCell>
-                      {user.role_id === 1 ? '店长' : 
-                       user.role_id === 2 ? '销售' : 
-                       '未分配'}
+                      <Select 
+                        value={user.role_id?.toString() || ''}
+                        onValueChange={(value) => handleRoleChange(user.user_id, parseInt(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue>
+                            {user.role_id === 1 ? '店长' : 
+                             user.role_id === 2 ? '销售' : 
+                             '未分配'}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">店长</SelectItem>
+                          <SelectItem value="2">销售</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                   </TableRow>
                 ))}

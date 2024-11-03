@@ -253,7 +253,7 @@ export async function getUsers(): Promise<User[]> {
   }
 }
 
-// 分配角色
+// 修改或分配角色
 export async function assignRole(
   userId: string,
   roleId: number
@@ -272,19 +272,19 @@ export async function assignRole(
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || '分配角色失败');
+      throw new Error(error.message || '角色更新失败');
     }
 
     const data = await response.json();
     toast({
       title: "成功",
-      description: "角色分配成功",
+      description: "角色更新成功",
     });
     return data;
   } catch (error) {
     toast({
       title: "错误",
-      description: error instanceof Error ? error.message : '分配角色失败',
+      description: error instanceof Error ? error.message : '角色更新失败',
       variant: "destructive",
     });
     throw error;

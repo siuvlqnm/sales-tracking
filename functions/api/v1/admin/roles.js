@@ -1,3 +1,5 @@
+import { adminAuthMiddleware } from '../../../middleware/adminAuth';
+
 export async function onRequest(context) {
     const { request, env } = context;
   
@@ -22,17 +24,9 @@ export async function onRequest(context) {
         });
       }
 
-      // 验证角色ID是否有效
-      if (![1, 2].includes(role_id)) {
-        return new Response(JSON.stringify({ message: '无效的角色ID' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
       // 检查用户是否存在
       const user = await db.prepare(
-        'SELECT user_id, role_id FROM users WHERE user_id = ?'
+        'SELECT user_id FROM users WHERE user_id = ?'
       ).bind(user_id).first();
 
       if (!user) {
@@ -45,35 +39,28 @@ export async function onRequest(context) {
       // 更新用户角色
       await db.prepare(`
         UPDATE users 
-        SET role_id = ? 
+        SET role_id = ?, 
+            updated_at = datetime('now', '+8 hours')
         WHERE user_id = ?
       `).bind(role_id, user_id).run();
 
-      // 获取更新后的用户信息（包含门店信息）
+      // 获取更新后的用户信息
       const updatedUser = await db.prepare(`
         SELECT 
           u.user_id, 
           u.user_name, 
           u.role_id,
+          u.created_at,
           GROUP_CONCAT(s.store_id) as store_ids,
           GROUP_CONCAT(s.store_name) as store_names
         FROM users u
         LEFT JOIN user_stores us ON u.user_id = us.user_id
         LEFT JOIN stores s ON us.store_id = s.store_id
         WHERE u.user_id = ?
-        GROUP BY u.user_id, u.user_name, u.role_id
+        GROUP BY u.user_id
       `).bind(user_id).first();
 
-      // 格式化用户信息
-      const formattedUser = {
-        ...updatedUser,
-        stores: updatedUser.store_ids ? updatedUser.store_ids.split(',').map((store_id, index) => ({
-          store_id,
-          store_name: updatedUser.store_names.split(',')[index]
-        })) : []
-      };
-
-      return new Response(JSON.stringify(formattedUser), {
+      return new Response(JSON.stringify(updatedUser), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
