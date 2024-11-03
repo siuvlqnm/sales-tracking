@@ -49,10 +49,19 @@ export async function onRequest(context) {
         )
       };
 
+      // 辅助函数：UTF-8 安全的 base64 编码
+      function base64UrlEncode(str) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(str);
+        return btoa(String.fromCharCode(...new Uint8Array(data)))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=/g, '');
+      }
+
       // JWT 签名
-      const encoder = new TextEncoder();
-      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = btoa(JSON.stringify({
+      const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payload = base64UrlEncode(JSON.stringify({
         user,
         exp: Math.floor(Date.now() / 1000) + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
       }));
@@ -60,7 +69,7 @@ export async function onRequest(context) {
       const message = `${header}.${payload}`;
       const key = await crypto.subtle.importKey(
         'raw',
-        encoder.encode(context.env.JWT_SECRET),
+        new TextEncoder().encode(context.env.JWT_SECRET),
         { name: 'HMAC', hash: 'SHA-256' },
         false,
         ['sign']
@@ -69,10 +78,10 @@ export async function onRequest(context) {
       const signature = await crypto.subtle.sign(
         'HMAC',
         key,
-        encoder.encode(message)
+        new TextEncoder().encode(message)
       );
       
-      const token = `${message}.${btoa(String.fromCharCode(...new Uint8Array(signature))).replace(/=/g, '')}`;
+      const token = `${message}.${base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)))}`;
 
       return new Response(JSON.stringify({ token }), {
         status: 200,

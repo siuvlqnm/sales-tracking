@@ -6,6 +6,24 @@ export interface User {
   storeNames: { [key: string]: string };
 }
 
+// base64url 解码函数
+function base64UrlDecode(str: string): string {
+  // 还原 base64url 编码
+  const base64 = str
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+    
+  // 解码 base64 为字节数组
+  const binStr = atob(base64);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) {
+    bytes[i] = binStr.charCodeAt(i);
+  }
+  
+  // 将字节数组解码为 UTF-8 字符串
+  return new TextDecoder().decode(bytes);
+}
+
 // 从 JWT token 中解析用户信息
 export function getUser(): User | null {
   const token = localStorage.getItem('token');
@@ -15,7 +33,7 @@ export function getUser(): User | null {
     const [, payload] = token.split('.');
     if (!payload) return null;
 
-    const decodedPayload = JSON.parse(atob(payload));
+    const decodedPayload = JSON.parse(base64UrlDecode(payload));
     
     // 检查 token 是否过期
     if (decodedPayload.exp && decodedPayload.exp * 1000 < Date.now()) {
