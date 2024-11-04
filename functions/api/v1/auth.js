@@ -119,7 +119,7 @@ export async function onRequest(context) {
       const payload = {
         user,
         iat: now,
-        exp: now + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
+        exp: now + (Number(context.env.CLIENT_TOKEN_EXPIRES_HOURS) * 60 * 60)
       };
   
       const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
