@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getUser } from '@/lib/authUtils';
+import { type User, getUser } from '@/lib/authUtils';
 import { submitSalesRecords } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
@@ -25,7 +25,15 @@ export default function SalesForm() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
-  const user = getUser();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await getUser();
+      setUser(userData);
+    };
+    loadUser();
+  }, []);
 
   useEffect(() => {
     if (user?.storeIds.length === 1) {

@@ -240,9 +240,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const currentUser = getUser();
-    setUser(currentUser);
-    setLoading(false);
+    async function fetchUser() {
+      const currentUser = await getUser();
+      setUser(currentUser);
+      setLoading(false);
+    }
+    fetchUser();
   }, []);
 
   if (loading) {

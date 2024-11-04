@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getUser } from '@/lib/authUtils';
+import { getUser, type User } from '@/lib/authUtils';
 import { querySalesRecords, type SalesRecord } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
@@ -17,7 +17,11 @@ export default function SalesRecordList() {
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
-  const user = getUser();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    getUser().then(setUser);
+  }, []);
 
   const fetchRecords = useCallback(async () => {
     if (!user) return;

@@ -6,176 +6,154 @@ export interface User {
   storeNames: { [key: string]: string };
 }
 
-// base64url 解码函数
-function base64UrlDecode(str: string): string {
-  try {
-    str = str.replace(/-/g, '+').replace(/_/g, '/');
-    while (str.length % 4) {
-      str += '=';
+interface JWTPayload {
+  user: User;
+  exp: number;
+}
+
+class TokenService {
+  private static instance: TokenService;
+  private readonly storageKey = 'token';
+  private readonly secret = '2b7e151628aed2a6abf7158809cf4f3c';
+
+  private constructor() {}
+
+  static getInstance(): TokenService {
+    if (!TokenService.instance) {
+      TokenService.instance = new TokenService();
     }
-    return atob(str);
-  } catch (e) {
-    console.error('Base64URL decode error:', e);
-    throw e;
-  }
-}
-
-// 验证签名是否有效的函数
-async function verifyJWT(token: string, secret: string) {
-  const [headerB64, payloadB64, signatureB64] = token.split('.');
-
-  // 解码头部和载荷
-  const header = JSON.parse(base64UrlDecode(headerB64));
-  const payload = JSON.parse(base64UrlDecode(payloadB64));
-  const signature = Uint8Array.from(atob(base64UrlDecode(signatureB64)), c => c.charCodeAt(0));
-
-  // 检查算法是否为HS256
-  if (header.alg !== 'HS256') {
-    throw new Error('不支持的算法');
+    return TokenService.instance;
   }
 
-  // 导入密钥
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
-
-  // 验证签名
-  const message = `${headerB64}.${payloadB64}`;
-  const isValid = await crypto.subtle.verify(
-    'HMAC',
-    key,
-    signature,
-    new TextEncoder().encode(message)
-  );
-
-  if (!isValid) {
-    throw new Error('无效的签名');
+  private base64UrlDecode(str: string): string {
+    try {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) {
+        str += '=';
+      }
+      return atob(str);
+    } catch (e) {
+      console.error('Base64URL decode error:', e);
+      throw e;
+    }
   }
 
-  // 检查是否过期
-  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
-    throw new Error('Token 已过期');
+  private async verifyToken(token: string): Promise<JWTPayload> {
+    const [headerB64, payloadB64, signatureB64] = token.split('.');
+    if (!headerB64 || !payloadB64 || !signatureB64) {
+      throw new Error('Invalid token format');
+    }
+
+    // 解码头部和载荷
+    const header = JSON.parse(this.base64UrlDecode(headerB64));
+    const payload = JSON.parse(this.base64UrlDecode(payloadB64));
+
+    // 检查算法
+    if (header.alg !== 'HS256') {
+      throw new Error('Unsupported algorithm');
+    }
+
+    // 验证签名
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(this.secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const signature = Uint8Array.from(
+      atob(this.base64UrlDecode(signatureB64)), 
+      c => c.charCodeAt(0)
+    );
+
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      signature,
+      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
+    );
+
+    if (!isValid) {
+      throw new Error('Invalid signature');
+    }
+
+    return payload as JWTPayload;
   }
 
-  return payload; // 返回解析后的载荷
-}
-
-// 检查 token 是否过期
-export function isTokenExpired(): boolean {
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) return true;
-
-    const [, payload] = token.split('.');
-    if (!payload) return true;
-
-    const decodedPayload = JSON.parse(base64UrlDecode(payload));
-    return decodedPayload.exp * 1000 <= Date.now();
-  } catch (e) {
-    console.error('Token expiry check failed:', e);
-    return true;
+  private isExpired(exp: number): boolean {
+    return exp * 1000 <= Date.now();
   }
-}
 
-// 从 JWT token 中解析用户信息
-export function getUser(): User | null {
-  try {
-    const token = localStorage.getItem('token');
+  async setToken(token: string): Promise<void> {
+    if (!token) {
+      throw new Error('Empty token');
+    }
+
+    try {
+      const payload = await this.verifyToken(token);
+      if (this.isExpired(payload.exp)) {
+        throw new Error('Token expired');
+      }
+      localStorage.setItem(this.storageKey, token);
+    } catch (error) {
+      console.error('Token validation failed:', error);
+      this.clearToken();
+      throw error;
+    }
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.storageKey);
+  }
+
+  clearToken(): void {
+    localStorage.removeItem(this.storageKey);
+  }
+
+  async getUser(): Promise<User | null> {
+    const token = this.getToken();
     if (!token) return null;
 
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      console.error('Invalid token format');
+    try {
+      const payload = await this.verifyToken(token);
+      if (this.isExpired(payload.exp)) {
+        this.clearToken();
+        return null;
+      }
+      return payload.user;
+    } catch (error) {
+      console.error('Failed to get user:', error);
+      this.clearToken();
       return null;
     }
+  }
 
-    const payload = base64UrlDecode(parts[1]);
-    const decodedPayload = JSON.parse(payload);
-    
-    // 检查 token 是否过期
-    if (decodedPayload.exp && decodedPayload.exp * 1000 < Date.now()) {
-      console.log('Token expired:', new Date(decodedPayload.exp * 1000));
-      clearAuth();
-      return null;
+  getAuthHeader(): { Authorization: string } | Record<string, never> {
+    const token = this.getToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+
+    try {
+      const [, payload] = token.split('.');
+      const decodedPayload = JSON.parse(this.base64UrlDecode(payload));
+      return !this.isExpired(decodedPayload.exp);
+    } catch {
+      return false;
     }
-
-    // 验证用户数据结构
-    if (!decodedPayload.user || !decodedPayload.user.id) {
-      console.error('Invalid user data in token');
-      return null;
-    }
-
-    return decodedPayload.user;
-  } catch (e) {
-    console.error('Failed to parse user from token:', e);
-    clearAuth();
-    return null;
   }
 }
 
-// 保存认证信息
-export function setAuth(token: string): void {
-  if (!token) {
-    console.error('Attempting to set empty token');
-    return;
-  }
-  const secret = '2b7e151628aed2a6abf7158809cf4f3c';
+// 导出单例实例
+const tokenService = TokenService.getInstance();
 
-  try {
-    const decodedPayload = verifyJWT(token, secret);
-    console.log('Token 有效，解析后的载荷:', decodedPayload);
-    localStorage.setItem('token', token);
-  } catch (error) {
-    console.error('验证失败:', error);
-    throw error;
-  }
-  
-//   try {
-//     // 验证 token 格式
-//     const parts = token.split('.');
-//     if (parts.length !== 3) {
-//       throw new Error('Invalid token format');
-//     }
-
-//     // 尝试解析确保 token 有效
-//     const payload = JSON.parse(base64UrlDecode(parts[1]));
-//     if (!payload.user || !payload.exp) {
-//       throw new Error('Invalid token payload');
-//     }
-
-//     localStorage.setItem('token', token);
-//     console.log('Token successfully saved');
-//   } catch (e) {
-//     console.error('Failed to save token:', e);
-//     throw e;
-//   }
-}
-
-// 清除认证信息
-export function clearAuth(): void {
-  localStorage.removeItem('token');
-  console.log('Auth cleared');
-}
-
-// 获取认证头
-export function getAuthHeader(): { Authorization: string } | Record<string, never> {
-  const token = localStorage.getItem('token');
-  if (!token) return {};
-  
-  try {
-    // 简单验证 token 格式
-    if (token.split('.').length !== 3) {
-      console.error('Invalid token format in headers');
-      clearAuth();
-      return {};
-    }
-    return { Authorization: `Bearer ${token}` };
-  } catch (e) {
-    console.error('Failed to get auth header:', e);
-    return {};
-  }
-} 
+// 导出简化的公共接口
+export const setAuth = (token: string) => tokenService.setToken(token);
+export const getUser = () => tokenService.getUser();
+export const clearAuth = () => tokenService.clearToken();
+export const getAuthHeader = () => tokenService.getAuthHeader();
+export const isTokenExpired = () => !tokenService.isAuthenticated();

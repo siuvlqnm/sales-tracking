@@ -10,8 +10,8 @@ const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const checkUser = () => {
-      setUser(getUser());
+    const checkUser = async () => {
+      setUser(await getUser());
     };
 
     checkUser();

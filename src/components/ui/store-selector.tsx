@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUser } from '@/lib/authUtils';
+import { getUser, type User } from '@/lib/authUtils';
 
 interface StoreSelectorProps {
   value: string;
@@ -11,7 +11,12 @@ interface StoreSelectorProps {
 }
 
 export function StoreSelector({ value, onChange, className }: StoreSelectorProps) {
-  const user = getUser();
+  const [user, setUser] = React.useState<User | null>(null);
+
+  React.useEffect(() => {
+    getUser().then(setUser);
+  }, []);
+
   const hasMultipleStores = user?.storeIds && user.storeIds.length > 1;
 
   if (!hasMultipleStores) return null;

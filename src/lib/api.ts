@@ -31,48 +31,34 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
     ...options.headers,
   };
 
-  try {
-    const response = await fetch(url, { ...options, headers });
+  const response = await fetch(url, { ...options, headers });
     
-    // 处理 401 未授权响应
-    if (response.status === 401) {
-      clearAuth();
-      window.location.href = '/auth';
-      throw new Error('登录已过期，请重新登录');
-    }
-
-    if (!response.ok) {
-      throw new Error('请求失败');
-    }
-
-    return response;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error('网络请求失败');
+  if (response.status === 401) {
+    clearAuth();
+    window.location.href = '/auth';
+    throw new Error('登录已过期，请重新登录');
   }
+
+  if (!response.ok) {
+    throw new Error('请求失败');
+  }
+
+  return response;
 }
 
 // 认证用户
 export async function authenticateUser(trackingId: string): Promise<{token: string}> {
-  console.log('Authenticating user:', trackingId); // 调试用
-  
   const response = await fetch('/api/v1/auth', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: baseConfig.headers,
     body: JSON.stringify({ user_id: trackingId }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || '认证失败');
-  }
-
   const data = await response.json();
-  console.log('Auth API response:', data); // 调试用
+  
+  if (!response.ok) {
+    throw new Error(data.message || '认证失败');
+  }
   
   if (!data.token) {
     throw new Error('未收到有效的 token');

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { getChartData, type ChartData } from '@/lib/api';
-import { getUser } from '@/lib/authUtils';
+import { type User, getUser } from '@/lib/authUtils';
 import { Loader2 } from "lucide-react";
 import { StoreSelector } from '@/components/ui/store-selector';
 
@@ -16,7 +16,11 @@ export default function SalesCharts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
-  const user = getUser();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    getUser().then(setUser);
+  }, []);
 
   const fetchChartData = useCallback(async () => {
     if (!user) return;
@@ -118,7 +122,7 @@ export default function SalesCharts() {
         </Card>
 
         {/* 销售人员排名卡片 - 仅管理员可见 */}
-        {user.role === 'manager' && salesData.topSalespeople && (
+        {user?.role === 'manager' && salesData.topSalespeople && (
           <Card>
             <CardHeader>
               <CardTitle>老师业绩排名</CardTitle>
