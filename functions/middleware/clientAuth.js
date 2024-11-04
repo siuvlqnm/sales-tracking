@@ -1,4 +1,16 @@
-// 验证 JWT token 并返回用户信息
+function base64UrlDecode(input) {
+  // 还原 base64 格式
+  const base64 = input
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  
+  // 添加填充
+  const padLength = (4 - (base64.length % 4)) % 4;
+  const paddedBase64 = base64 + '='.repeat(padLength);
+  
+  return atob(paddedBase64);
+}
+
 export async function validateToken(request, corsHeaders) {
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -9,22 +21,36 @@ export async function validateToken(request, corsHeaders) {
   }
 
   const token = authHeader.split(' ')[1];
-  const [, payload] = token.split('.');
-  if (!payload) {
-    throw new Response(JSON.stringify({ message: 'Invalid token' }), {
+  const [headerB64, payloadB64, signatureB64] = token.split('.');
+  
+  if (!headerB64 || !payloadB64 || !signatureB64) {
+    throw new Response(JSON.stringify({ message: 'Invalid token format' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
-  // 解码并验证 token
-  const decodedPayload = JSON.parse(atob(payload));
-  if (decodedPayload.exp * 1000 < Date.now()) {
-    throw new Response(JSON.stringify({ message: 'Token expired' }), {
+  try {
+    // 解码头部和载荷
+    const header = JSON.parse(base64UrlDecode(headerB64));
+    const payload = JSON.parse(base64UrlDecode(payloadB64));
+
+    // 检查算法
+    if (header.alg !== 'HS256') {
+      throw new Error('Unsupported algorithm');
+    }
+
+    // 检查过期时间
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload.exp || payload.exp < now) {
+      throw new Error('Token has expired');
+    }
+
+    return payload.user;
+  } catch (error) {
+    throw new Response(JSON.stringify({ message: error.message }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
-
-  return decodedPayload.user;
 } 

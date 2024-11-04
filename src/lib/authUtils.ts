@@ -25,47 +25,6 @@ class TokenService {
     return TokenService.instance;
   }
 
-  // private base64UrlDecode(str: string): string {
-  //   // Add padding if needed
-  //   const padding = '='.repeat((4 - (str.length % 4)) % 4);
-  //   const base64 = (str + padding)
-  //     .replace(/-/g, '+')
-  //     .replace(/_/g, '/');
-
-  //   try {
-  //     return decodeURIComponent(
-  //       atob(base64)
-  //         .split('')
-  //         .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-  //         .join('')
-  //     );
-  //   } catch (e) {
-  //     console.error('Base64URL decode error:', e);
-  //     throw new Error('Invalid token format');
-  //   }
-  // }
-
-  // private base64UrlDecode(str: string): Uint8Array {
-  //   // 将 URL 安全字符 `-` 和 `_` 替换为标准 Base64 字符 `+` 和 `/`
-  //   str = str.replace(/-/g, '+').replace(/_/g, '/');
-  
-  //   // 补齐 `=` 使字符串长度为 4 的倍数
-  //   while (str.length % 4 !== 0) {
-  //     str += '=';
-  //   }
-  
-  //   // 将 Base64 解码为字符数组
-  //   const binaryString = window.atob(str);
-  //   const len = binaryString.length;
-  //   const bytes = new Uint8Array(len);
-  
-  //   for (let i = 0; i < len; i++) {
-  //     bytes[i] = binaryString.charCodeAt(i);
-  //   }
-  
-  //   return bytes;
-  // }
-
   private base64UrlDecode(input: string): Uint8Array {
     // 还原 base64 格式
     const base64 = input
