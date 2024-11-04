@@ -97,13 +97,19 @@ export async function onRequest(context) {
       };
 
       function base64UrlEncode(input) {
-        let str = '';
+        let binary;
         if (input instanceof Uint8Array) {
-          str = String.fromCharCode(...input);
+          binary = input;
         } else {
-          str = input;
+          // 将字符串转换为 UTF-8 编码的 Uint8Array
+          binary = new TextEncoder().encode(input);
         }
-        return btoa(str)
+        
+        // 将二进制数据转换为 base64
+        const base64 = btoa(String.fromCharCode(...binary));
+        
+        // 转换为 base64url 格式
+        return base64
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
           .replace(/=/g, '');

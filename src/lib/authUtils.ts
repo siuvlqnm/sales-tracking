@@ -67,14 +67,24 @@ class TokenService {
   // }
 
   private base64UrlDecode(input: string): Uint8Array {
-    const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+    // 还原 base64 格式
+    const base64 = input
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+    
+    // 添加填充
     const padLength = (4 - (base64.length % 4)) % 4;
-    const padded = base64 + '='.repeat(padLength);
-    const binary = atob(padded);
+    const paddedBase64 = base64 + '='.repeat(padLength);
+
+    // 解码 base64
+    const binary = atob(paddedBase64);
+    
+    // 转换为 Uint8Array
     const output = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
       output[i] = binary.charCodeAt(i);
     }
+    
     return output;
   }
 
