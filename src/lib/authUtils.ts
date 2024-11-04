@@ -103,7 +103,7 @@ class TokenService {
     } catch (error) {
       console.error('Token validation failed:', error);
       this.clearToken();
-      throw new Error('Token validation failed' || error);
+      throw new Error('Token validation failed');
     }
   }
 
