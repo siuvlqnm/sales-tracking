@@ -11,18 +11,28 @@ import { setAuth } from '@/lib/authUtils';
 export default function AuthPage() {
   const [trackingId, setTrackingId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
-      const { token } = await authenticateUser(trackingId);
-      setAuth(token);
-      router.push('/');
+      const response = await authenticateUser(trackingId);
+      console.log('Auth response:', response); // 调试用
+      
+      if (response.token) {
+        setAuth(response.token);
+        // 强制刷新页面以确保状态更新
+        window.location.href = '/';
+      } else {
+        setError('登录失败：未收到有效的 token');
+      }
     } catch (err) {
       console.error('Authentication error:', err);
+      setError('登录失败，请重试');
     } finally {
       setLoading(false);
     }
@@ -42,6 +52,9 @@ export default function AuthPage() {
               placeholder="请输入 Tracking ID"
               disabled={loading}
             />
+            {error && (
+              <div className="text-red-500 text-sm">{error}</div>
+            )}
             <Button 
               type="submit" 
               className="w-full"

@@ -71,6 +71,7 @@ export function setAuth(token: string): void {
     console.error('Attempting to set empty token');
     return;
   }
+  console.log('Setting token:', token); // 调试用
   localStorage.setItem('token', token);
 }
 

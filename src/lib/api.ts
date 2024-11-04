@@ -56,6 +56,8 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
 
 // 认证用户
 export async function authenticateUser(trackingId: string): Promise<{token: string}> {
+  console.log('Authenticating user:', trackingId); // 调试用
+  
   const response = await fetch('/api/v1/auth', {
     method: 'POST',
     headers: {
@@ -70,6 +72,7 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
   }
 
   const data = await response.json();
+  console.log('Auth API response:', data); // 调试用
   
   if (!data.token) {
     throw new Error('未收到有效的 token');
