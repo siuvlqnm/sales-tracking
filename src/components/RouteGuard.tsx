@@ -14,15 +14,19 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = getUser();
-    const path = pathname.split('?')[0];
+    async function checkAuth() {
+      const user = await getUser();
+      const path = pathname.split('?')[0];
 
-    if (!user && !publicPaths.includes(path)) {
-      router.push('/auth');
-    } else {
-      setAuthorized(true);
+      if (!user && !publicPaths.includes(path)) {
+        router.push('/auth');
+      } else {
+        setAuthorized(true);
+      }
+      setLoading(false);
     }
-    setLoading(false);
+
+    checkAuth();
   }, [pathname, router]);
 
   if (loading) {

@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { authenticateUser } from '@/lib/api';
-// import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { setAuth } from '@/lib/authUtils';
 
 export default function AuthPage() {
   const [trackingId, setTrackingId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  // const router = useRouter();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,18 +21,16 @@ export default function AuthPage() {
 
     try {
       const response = await authenticateUser(trackingId);
-      console.log('Auth response:', response); // 调试用
       
-      if (response.token) {
-        setAuth(response.token);
-        // 强制刷新页面以确保状态更新
-        window.location.href = '/';
+      if (response?.token) {
+        await setAuth(response.token);
+        router.push('/');
       } else {
-        setError('登录失败：未收到有效的 token');
+        setError('登录失败：无效的凭证');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Authentication error:', err);
-      setError('登录失败，请重试');
+      setError(err?.message || '登录失败，请重试');
     } finally {
       setLoading(false);
     }
