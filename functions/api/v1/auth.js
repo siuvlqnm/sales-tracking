@@ -97,7 +97,6 @@ export async function onRequest(context) {
       };
 
       function base64UrlEncode(str) {
-        let str = '';
         if (input instanceof Uint8Array) {
           str = String.fromCharCode(...input);
         } else {
