@@ -26,15 +26,19 @@ class TokenService {
   }
 
   private base64UrlDecode(str: string): string {
+    // 将 URL 安全字符 `-` 和 `_` 替换为标准 Base64 字符 `+` 和 `/`
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+  
+    // 补齐 `=` 使字符串长度为 4 的倍数
+    while (str.length % 4 !== 0) {
+      str += '=';
+    }
+  
     try {
-      str = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (str.length % 4) {
-        str += '=';
-      }
       return atob(str);
     } catch (e) {
       console.error('Base64URL decode error:', e);
-      throw e;
+      throw new Error('Invalid base64 string');
     }
   }
 
@@ -99,7 +103,7 @@ class TokenService {
     } catch (error) {
       console.error('Token validation failed:', error);
       this.clearToken();
-      throw error;
+      throw new Error('Token validation failed' || error);
     }
   }
 
