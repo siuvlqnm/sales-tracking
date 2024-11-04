@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { authenticateUser } from '@/lib/api';
-import { useRouter } from 'next/navigation';
+// import { useRouter } from 'next/navigation';
 import { setAuth } from '@/lib/authUtils';
 
 export default function AuthPage() {
