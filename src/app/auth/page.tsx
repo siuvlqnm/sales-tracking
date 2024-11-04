@@ -28,9 +28,11 @@ export default function AuthPage() {
       } else {
         setError('登录失败：无效的凭证');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Authentication error:', err);
-      setError(err?.message || '登录失败，请重试');
+      setError(
+        err instanceof Error ? err.message : '登录失败，请重试'
+      );
     } finally {
       setLoading(false);
     }
