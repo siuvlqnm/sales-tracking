@@ -9,18 +9,59 @@ export interface User {
 // base64url 解码函数
 function base64UrlDecode(str: string): string {
   try {
-    // 1. 补充 base64 填充
-    let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    while (base64.length % 4) {
-      base64 += '=';
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) {
+      str += '=';
     }
-    
-    // 2. 直接解码 base64
-    return decodeURIComponent(escape(atob(base64)));
+    return atob(str);
   } catch (e) {
     console.error('Base64URL decode error:', e);
     throw e;
   }
+}
+
+// 验证签名是否有效的函数
+async function verifyJWT(token: string, secret: string) {
+  const [headerB64, payloadB64, signatureB64] = token.split('.');
+
+  // 解码头部和载荷
+  const header = JSON.parse(base64UrlDecode(headerB64));
+  const payload = JSON.parse(base64UrlDecode(payloadB64));
+  const signature = Uint8Array.from(atob(base64UrlDecode(signatureB64)), c => c.charCodeAt(0));
+
+  // 检查算法是否为HS256
+  if (header.alg !== 'HS256') {
+    throw new Error('不支持的算法');
+  }
+
+  // 导入密钥
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify']
+  );
+
+  // 验证签名
+  const message = `${headerB64}.${payloadB64}`;
+  const isValid = await crypto.subtle.verify(
+    'HMAC',
+    key,
+    signature,
+    new TextEncoder().encode(message)
+  );
+
+  if (!isValid) {
+    throw new Error('无效的签名');
+  }
+
+  // 检查是否过期
+  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+    throw new Error('Token 已过期');
+  }
+
+  return payload; // 返回解析后的载荷
 }
 
 // 检查 token 是否过期
@@ -82,26 +123,36 @@ export function setAuth(token: string): void {
     console.error('Attempting to set empty token');
     return;
   }
-  
+  const secret = '2b7e151628aed2a6abf7158809cf4f3c';
+
   try {
-    // 验证 token 格式
-    const parts = token.split('.');
-    if (parts.length !== 3) {
-      throw new Error('Invalid token format');
-    }
-
-    // 尝试解析确保 token 有效
-    const payload = JSON.parse(base64UrlDecode(parts[1]));
-    if (!payload.user || !payload.exp) {
-      throw new Error('Invalid token payload');
-    }
-
+    const decodedPayload = verifyJWT(token, secret);
+    console.log('Token 有效，解析后的载荷:', decodedPayload);
     localStorage.setItem('token', token);
-    console.log('Token successfully saved');
-  } catch (e) {
-    console.error('Failed to save token:', e);
-    throw e;
+  } catch (error) {
+    console.error('验证失败:', error);
+    throw error;
   }
+  
+//   try {
+//     // 验证 token 格式
+//     const parts = token.split('.');
+//     if (parts.length !== 3) {
+//       throw new Error('Invalid token format');
+//     }
+
+//     // 尝试解析确保 token 有效
+//     const payload = JSON.parse(base64UrlDecode(parts[1]));
+//     if (!payload.user || !payload.exp) {
+//       throw new Error('Invalid token payload');
+//     }
+
+//     localStorage.setItem('token', token);
+//     console.log('Token successfully saved');
+//   } catch (e) {
+//     console.error('Failed to save token:', e);
+//     throw e;
+//   }
 }
 
 // 清除认证信息
