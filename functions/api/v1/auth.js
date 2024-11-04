@@ -36,6 +36,53 @@ export async function onRequest(context) {
         });
       }
 
+      // const user = {
+      //   id: userInfo.user_id,
+      //   name: userInfo.user_name,
+      //   role: userInfo.role_id === 1 ? 'manager' : 'salesperson',
+      //   storeIds: userInfo.store_ids.split(','),
+      //   storeNames: Object.fromEntries(
+      //     userInfo.store_ids.split(',').map((id, index) => [
+      //       id,
+      //       userInfo.store_names.split(',')[index]
+      //     ])
+      //   )
+      // };
+
+      // // 辅助函数：UTF-8 安全的 base64 编码
+      // function base64UrlEncode(str) {
+      //   const encoder = new TextEncoder();
+      //   const data = encoder.encode(str);
+      //   return btoa(String.fromCharCode(...new Uint8Array(data)))
+      //     .replace(/\+/g, '-')
+      //     .replace(/\//g, '_')
+      //     .replace(/=/g, '');
+      // }
+
+      // // JWT 签名
+      // const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      // const payload = base64UrlEncode(JSON.stringify({
+      //   user,
+      //   exp: Math.floor(Date.now() / 1000) + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
+      // }));
+      
+      // const message = `${header}.${payload}`;
+      // const key = await crypto.subtle.importKey(
+      //   'raw',
+      //   new TextEncoder().encode(context.env.JWT_SECRET),
+      //   { name: 'HMAC', hash: 'SHA-256' },
+      //   false,
+      //   ['sign']
+      // );
+      
+      // const signature = await crypto.subtle.sign(
+      //   'HMAC',
+      //   key,
+      //   new TextEncoder().encode(message)
+      // );
+      
+      // const token = `${message}.${base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)))}`;
+
       const user = {
         id: userInfo.user_id,
         name: userInfo.user_name,
@@ -49,7 +96,6 @@ export async function onRequest(context) {
         )
       };
 
-      // 辅助函数：UTF-8 安全的 base64 编码
       function base64UrlEncode(str) {
         const encoder = new TextEncoder();
         const data = encoder.encode(str);
@@ -58,14 +104,13 @@ export async function onRequest(context) {
           .replace(/\//g, '_')
           .replace(/=/g, '');
       }
-
-      // JWT 签名
+    
       const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
       const payload = base64UrlEncode(JSON.stringify({
         user,
         exp: Math.floor(Date.now() / 1000) + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
       }));
-      
+    
       const message = `${header}.${payload}`;
       const key = await crypto.subtle.importKey(
         'raw',
@@ -74,14 +119,18 @@ export async function onRequest(context) {
         false,
         ['sign']
       );
-      
+    
       const signature = await crypto.subtle.sign(
         'HMAC',
         key,
         new TextEncoder().encode(message)
       );
-      
-      const token = `${message}.${base64UrlEncode(String.fromCharCode(...new Uint8Array(signature)))}`;
+    
+      const token = `${message}.${base64UrlEncode(
+        Array.from(new Uint8Array(signature))
+          .map(byte => String.fromCharCode(byte))
+          .join('')
+      )}`;
 
       return new Response(JSON.stringify({ token }), {
         status: 200,

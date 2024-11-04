@@ -25,24 +25,59 @@ class TokenService {
     return TokenService.instance;
   }
 
+  // private base64UrlDecode(str: string): string {
+  //   // Add padding if needed
+  //   const padding = '='.repeat((4 - (str.length % 4)) % 4);
+  //   const base64 = (str + padding)
+  //     .replace(/-/g, '+')
+  //     .replace(/_/g, '/');
+
+  //   try {
+  //     return decodeURIComponent(
+  //       atob(base64)
+  //         .split('')
+  //         .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+  //         .join('')
+  //     );
+  //   } catch (e) {
+  //     console.error('Base64URL decode error:', e);
+  //     throw new Error('Invalid token format');
+  //   }
+  // }
+
+  // private base64UrlDecode(str: string): Uint8Array {
+  //   // 将 URL 安全字符 `-` 和 `_` 替换为标准 Base64 字符 `+` 和 `/`
+  //   str = str.replace(/-/g, '+').replace(/_/g, '/');
+  
+  //   // 补齐 `=` 使字符串长度为 4 的倍数
+  //   while (str.length % 4 !== 0) {
+  //     str += '=';
+  //   }
+  
+  //   // 将 Base64 解码为字符数组
+  //   const binaryString = window.atob(str);
+  //   const len = binaryString.length;
+  //   const bytes = new Uint8Array(len);
+  
+  //   for (let i = 0; i < len; i++) {
+  //     bytes[i] = binaryString.charCodeAt(i);
+  //   }
+  
+  //   return bytes;
+  // }
+
   private base64UrlDecode(str: string): string {
-    // Add padding if needed
     const padding = '='.repeat((4 - (str.length % 4)) % 4);
     const base64 = (str + padding)
       .replace(/-/g, '+')
       .replace(/_/g, '/');
 
-    try {
-      return decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-    } catch (e) {
-      console.error('Base64URL decode error:', e);
-      throw new Error('Invalid token format');
-    }
+    return decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
   }
 
   private async verifyToken(token: string): Promise<JWTPayload> {
@@ -51,16 +86,16 @@ class TokenService {
       throw new Error('Invalid token format');
     }
 
-    // 解码头部和载荷
+    // Decode header and payload
     const header = JSON.parse(this.base64UrlDecode(headerB64));
     const payload = JSON.parse(this.base64UrlDecode(payloadB64));
 
-    // 检查算法
+    // Check algorithm
     if (header.alg !== 'HS256') {
       throw new Error('Unsupported algorithm');
     }
 
-    // 验证签名
+    // Verify signature
     const key = await crypto.subtle.importKey(
       'raw',
       new TextEncoder().encode(this.secret),
@@ -69,15 +104,18 @@ class TokenService {
       ['verify']
     );
 
-    const signature = Uint8Array.from(
-      atob(this.base64UrlDecode(signatureB64)), 
+    // Convert base64url to binary
+    const signatureBytes = Uint8Array.from(
+      atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/').padEnd(
+        signatureB64.length + ((4 - (signatureB64.length % 4)) % 4), '='
+      )),
       c => c.charCodeAt(0)
     );
 
     const isValid = await crypto.subtle.verify(
       'HMAC',
       key,
-      signature,
+      signatureBytes,
       new TextEncoder().encode(`${headerB64}.${payloadB64}`)
     );
 
@@ -85,8 +123,51 @@ class TokenService {
       throw new Error('Invalid signature');
     }
 
-    return payload as JWTPayload;
+    return payload;
   }
+  
+  // private async verifyToken(token: string): Promise<JWTPayload> {
+  //   const [headerB64, payloadB64, signatureB64] = token.split('.');
+  //   if (!headerB64 || !payloadB64 || !signatureB64) {
+  //     throw new Error('Invalid token format');
+  //   }
+
+  //   // 解码头部和载荷
+  //   const header = JSON.parse(this.base64UrlDecode(headerB64));
+  //   const payload = JSON.parse(this.base64UrlDecode(payloadB64));
+
+  //   // 检查算法
+  //   if (header.alg !== 'HS256') {
+  //     throw new Error('Unsupported algorithm');
+  //   }
+
+  //   // 验证签名
+  //   const key = await crypto.subtle.importKey(
+  //     'raw',
+  //     new TextEncoder().encode(this.secret),
+  //     { name: 'HMAC', hash: 'SHA-256' },
+  //     false,
+  //     ['verify']
+  //   );
+
+  //   const signature = Uint8Array.from(
+  //     atob(this.base64UrlDecode(signatureB64)), 
+  //     c => c.charCodeAt(0)
+  //   );
+
+  //   const isValid = await crypto.subtle.verify(
+  //     'HMAC',
+  //     key,
+  //     signature,
+  //     new TextEncoder().encode(`${headerB64}.${payloadB64}`)
+  //   );
+
+  //   if (!isValid) {
+  //     throw new Error('Invalid signature');
+  //   }
+
+  //   return payload as JWTPayload;
+  // }
 
   private isExpired(exp: number): boolean {
     return exp * 1000 <= Date.now();
