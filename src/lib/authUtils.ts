@@ -66,18 +66,16 @@ class TokenService {
   //   return bytes;
   // }
 
-  private base64UrlDecode(str: string): string {
-    const padding = '='.repeat((4 - (str.length % 4)) % 4);
-    const base64 = (str + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    return decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
+  private base64UrlDecode(input: string): Uint8Array {
+    const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+    const padLength = (4 - (base64.length % 4)) % 4;
+    const padded = base64 + '='.repeat(padLength);
+    const binary = atob(padded);
+    const output = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      output[i] = binary.charCodeAt(i);
+    }
+    return output;
   }
 
   private async verifyToken(token: string): Promise<JWTPayload> {
@@ -86,44 +84,50 @@ class TokenService {
       throw new Error('Invalid token format');
     }
 
-    // Decode header and payload
-    const header = JSON.parse(this.base64UrlDecode(headerB64));
-    const payload = JSON.parse(this.base64UrlDecode(payloadB64));
+    try {
+      // Decode header and payload
+      const headerText = new TextDecoder().decode(this.base64UrlDecode(headerB64));
+      const payloadText = new TextDecoder().decode(this.base64UrlDecode(payloadB64));
+      
+      const header = JSON.parse(headerText);
+      const payload = JSON.parse(payloadText);
 
-    // Check algorithm
-    if (header.alg !== 'HS256') {
-      throw new Error('Unsupported algorithm');
+      // Check algorithm
+      if (header.alg !== 'HS256') {
+        throw new Error('Unsupported algorithm');
+      }
+
+      // Check expiration
+      const now = Math.floor(Date.now() / 1000);
+      if (payload.exp && payload.exp < now) {
+        throw new Error('Token has expired');
+      }
+
+      // Verify signature
+      const key = await crypto.subtle.importKey(
+        'raw',
+        new TextEncoder().encode(this.secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['verify']
+      );
+
+      const signatureBytes = this.base64UrlDecode(signatureB64);
+      const isValid = await crypto.subtle.verify(
+        'HMAC',
+        key,
+        signatureBytes,
+        new TextEncoder().encode(`${headerB64}.${payloadB64}`)
+      );
+
+      if (!isValid) {
+        throw new Error('Invalid signature');
+      }
+
+      return payload;
+    } catch (error: unknown) {
+      throw new Error(`Token verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    // Verify signature
-    const key = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(this.secret),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-
-    // Convert base64url to binary
-    const signatureBytes = Uint8Array.from(
-      atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/').padEnd(
-        signatureB64.length + ((4 - (signatureB64.length % 4)) % 4), '='
-      )),
-      c => c.charCodeAt(0)
-    );
-
-    const isValid = await crypto.subtle.verify(
-      'HMAC',
-      key,
-      signatureBytes,
-      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
-    );
-
-    if (!isValid) {
-      throw new Error('Invalid signature');
-    }
-
-    return payload;
   }
   
   // private async verifyToken(token: string): Promise<JWTPayload> {
@@ -228,7 +232,7 @@ class TokenService {
 
     try {
       const [, payload] = token.split('.');
-      const decodedPayload = JSON.parse(this.base64UrlDecode(payload));
+      const decodedPayload = JSON.parse(new TextDecoder().decode(this.base64UrlDecode(payload)));
       return !this.isExpired(decodedPayload.exp);
     } catch {
       return false;

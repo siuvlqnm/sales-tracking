@@ -97,21 +97,29 @@ export async function onRequest(context) {
       };
 
       function base64UrlEncode(str) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(str);
-        return btoa(String.fromCharCode(...new Uint8Array(data)))
+        let str = '';
+        if (input instanceof Uint8Array) {
+          str = String.fromCharCode(...input);
+        } else {
+          str = input;
+        }
+        return btoa(str)
           .replace(/\+/g, '-')
           .replace(/\//g, '_')
           .replace(/=/g, '');
       }
-    
-      const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = base64UrlEncode(JSON.stringify({
+  
+      const now = Math.floor(Date.now() / 1000);
+      const payload = {
         user,
-        exp: Math.floor(Date.now() / 1000) + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
-      }));
-    
-      const message = `${header}.${payload}`;
+        iat: now,
+        exp: now + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
+      };
+  
+      const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+      const payloadB64 = base64UrlEncode(JSON.stringify(payload));
+      const message = `${header}.${payloadB64}`;
+  
       const key = await crypto.subtle.importKey(
         'raw',
         new TextEncoder().encode(context.env.JWT_SECRET),
@@ -119,18 +127,14 @@ export async function onRequest(context) {
         false,
         ['sign']
       );
-    
+  
       const signature = await crypto.subtle.sign(
         'HMAC',
         key,
         new TextEncoder().encode(message)
       );
-    
-      const token = `${message}.${base64UrlEncode(
-        Array.from(new Uint8Array(signature))
-          .map(byte => String.fromCharCode(byte))
-          .join('')
-      )}`;
+  
+      const token = `${message}.${base64UrlEncode(new Uint8Array(signature))}`;
 
       return new Response(JSON.stringify({ token }), {
         status: 200,
