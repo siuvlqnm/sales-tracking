@@ -166,7 +166,7 @@ function TopSalespeopleCard({ topSalespeople }: { topSalespeople: DashboardData[
       </CardHeader>
       <CardContent>
         {topSalespeople.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">暂无��据</div>
+          <div className="text-center py-4 text-gray-500">暂无数据</div>
         ) : (
           <ul className="space-y-3">
             {topSalespeople.map((person, index) => (
@@ -190,7 +190,7 @@ function TopSalespeopleCard({ topSalespeople }: { topSalespeople: DashboardData[
 export default function Home() {
   const { user, loading } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
 
@@ -202,23 +202,27 @@ export default function Home() {
 
   useEffect(() => {
     if (loading) return;
-    if (!user) {
-      // 处理未登录状态，比如重定向到登录页
-      return;
-    }
+    if (!user) return;
 
     async function fetchData() {
-      const data = await getDashboardData({ 
-        userId: user!.role === 'salesperson' ? user!.id : undefined,
-        storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
-      });
-      setDashboardData(data);
+      try {
+        setIsLoading(true);
+        const data = await getDashboardData({ 
+          userId: user!.role === 'salesperson' ? user!.id : undefined,
+          storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
+        });
+        setDashboardData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '加载数据失败');
+      } finally {
+        setIsLoading(false);
+      }
     }
 
     fetchData();
-  }, [user, selectedStoreId]);
+  }, [user, selectedStoreId, loading]);
 
-  if (loading || dataLoading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
