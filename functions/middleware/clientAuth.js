@@ -1,5 +1,5 @@
 function base64UrlDecode(input) {
-  // 还原 base64 格式
+  // 将 base64url 转换为标准 base64
   const base64 = input
     .replace(/-/g, '+')
     .replace(/_/g, '/');
@@ -8,7 +8,16 @@ function base64UrlDecode(input) {
   const padLength = (4 - (base64.length % 4)) % 4;
   const paddedBase64 = base64 + '='.repeat(padLength);
   
-  return atob(paddedBase64);
+  // 解码 base64 为二进制字符串
+  const binary = atob(paddedBase64);
+  
+  // 转换为 Uint8Array
+  const output = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    output[i] = binary.charCodeAt(i);
+  }
+  
+  return output;
 }
 
 export async function validateToken(context, corsHeaders) {
@@ -32,8 +41,17 @@ export async function validateToken(context, corsHeaders) {
 
   try {
     // 解码头部和载荷
-    const header = JSON.parse(base64UrlDecode(headerB64));
-    const payload = JSON.parse(base64UrlDecode(payloadB64));
+    const headerText = new TextDecoder().decode(base64UrlDecode(headerB64));
+    const payloadText = new TextDecoder().decode(base64UrlDecode(payloadB64));
+    
+    const header = JSON.parse(headerText);
+    const payload = JSON.parse(payloadText);
+
+    // 添加额外的时间检查
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.iat && payload.iat > now) {
+      throw new Error('Token issued in the future');
+    }
 
     // 检查算法
     if (header.alg !== 'HS256') {
@@ -41,7 +59,6 @@ export async function validateToken(context, corsHeaders) {
     }
 
     // 检查过期时间
-    const now = Math.floor(Date.now() / 1000);
     if (!payload.exp || payload.exp < now) {
       throw new Error('Token has expired');
     }
@@ -69,7 +86,9 @@ export async function validateToken(context, corsHeaders) {
 
     return payload.user;
   } catch (error) {
-    throw new Response(JSON.stringify({ message: error.message }), {
+    throw new Response(JSON.stringify({ 
+      message: `Token validation failed: ${error.message}` 
+    }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
