@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { getUser } from '@/lib/authUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from "lucide-react";
 
 const publicPaths = ['/auth'];
@@ -10,24 +9,7 @@ const publicPaths = ['/auth'];
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [authorized, setAuthorized] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function checkAuth() {
-      const user = await getUser();
-      const path = pathname.split('?')[0];
-
-      if (!user && !publicPaths.includes(path)) {
-        router.push('/auth');
-      } else {
-        setAuthorized(true);
-      }
-      setLoading(false);
-    }
-
-    checkAuth();
-  }, [pathname, router]);
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -37,7 +19,9 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!authorized && !publicPaths.includes(pathname)) {
+  const path = pathname.split('?')[0];
+  if (!user && !publicPaths.includes(path)) {
+    router.push('/auth');
     return null;
   }
 

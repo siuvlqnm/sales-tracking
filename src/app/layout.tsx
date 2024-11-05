@@ -1,5 +1,6 @@
 import '@/app/globals.css'
 import type { Metadata } from 'next'
+import { AuthProvider } from '@/contexts/AuthContext'
 import { RouteGuard } from '@/components/RouteGuard'
 import Navbar from '@/components/Navbar'
 
@@ -16,12 +17,14 @@ export default function RootLayout({
   return (
     <html lang="zh">
       <body>
-        <RouteGuard>
-          <Navbar />
-          <main>
-            {children}
-          </main>
-        </RouteGuard>
+        <AuthProvider>
+          <RouteGuard>
+            <Navbar />
+            <main>
+              {children}
+            </main>
+          </RouteGuard>
+        </AuthProvider>
       </body>
     </html>
   )

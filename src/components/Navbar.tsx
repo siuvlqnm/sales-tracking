@@ -2,26 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getUser, type User } from '@/lib/authUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const checkUser = async () => {
-      setUser(await getUser());
-    };
-
-    checkUser();
-    // 监听登录状态变化
-    window.addEventListener('auth-change', checkUser);
-
-    return () => {
-      window.removeEventListener('auth-change', checkUser);
-    };
-  }, []);
+  const { user } = useAuth();
 
   if (!user || pathname?.startsWith('/admin')) {
     return null;

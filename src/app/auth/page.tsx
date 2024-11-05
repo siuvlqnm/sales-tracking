@@ -49,7 +49,7 @@ export default function AuthPage() {
             <Input
               value={trackingId}
               onChange={(e) => setTrackingId(e.target.value)}
-              placeholder="请输入 Tracking ID"
+              placeholder="请输入令牌 ID"
               disabled={loading}
             />
             {error && (

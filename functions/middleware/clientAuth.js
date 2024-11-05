@@ -46,6 +46,27 @@ export async function validateToken(request, corsHeaders) {
       throw new Error('Token has expired');
     }
 
+    // Verify signature
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(context.env.JWT_SECRET),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const signatureBytes = this.base64UrlDecode(signatureB64);
+    const isValid = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      signatureBytes,
+      new TextEncoder().encode(`${headerB64}.${payloadB64}`)
+    );
+
+    if (!isValid) {
+      throw new Error('Invalid signature');
+    }
+
     return payload.user;
   } catch (error) {
     throw new Response(JSON.stringify({ message: error.message }), {

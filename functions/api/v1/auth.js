@@ -67,27 +67,14 @@ export async function onRequest(context) {
           .replace(/\//g, '_')
           .replace(/=/g, '');
       }
-
-      console.log('CLIENT_TOKEN_EXPIRES_HOURS:', {
-        iii: context.env.CLIENT_TOKEN_EXPIRES_HOURS,
-        aaa :context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60,
-        bbb: Number(context.env.CLIENT_TOKEN_EXPIRES_HOURS) * 60 * 60
-      });
   
       const now = Math.floor(Date.now() / 1000);
-      const expiresHours = context.env.CLIENT_TOKEN_EXPIRES_HOURS || 24; // 默认24小时
+      // const expiresHours = context.env.CLIENT_TOKEN_EXPIRES_HOURS || 24; // 默认24小时
       const payload = {
         user,
         iat: now,
-        exp: now + (Number(expiresHours) * 60 * 60)
+        exp: now + (context.env.CLIENT_TOKEN_EXPIRES_HOURS * 60 * 60)
       };
-  
-      // 调试日志
-      console.log('Token Expiration:', {
-        now,
-        expiresHours,
-        calculatedExp: now + (Number(expiresHours) * 60 * 60)
-      });
   
       const header = base64UrlEncode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
       const payloadB64 = base64UrlEncode(JSON.stringify(payload));
