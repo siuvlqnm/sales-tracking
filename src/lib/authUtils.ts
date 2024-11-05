@@ -98,49 +98,6 @@ class TokenService {
       throw new Error(`Token verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-  
-  // private async verifyToken(token: string): Promise<JWTPayload> {
-  //   const [headerB64, payloadB64, signatureB64] = token.split('.');
-  //   if (!headerB64 || !payloadB64 || !signatureB64) {
-  //     throw new Error('Invalid token format');
-  //   }
-
-  //   // 解码头部和载荷
-  //   const header = JSON.parse(this.base64UrlDecode(headerB64));
-  //   const payload = JSON.parse(this.base64UrlDecode(payloadB64));
-
-  //   // 检查算法
-  //   if (header.alg !== 'HS256') {
-  //     throw new Error('Unsupported algorithm');
-  //   }
-
-  //   // 验证签名
-  //   const key = await crypto.subtle.importKey(
-  //     'raw',
-  //     new TextEncoder().encode(this.secret),
-  //     { name: 'HMAC', hash: 'SHA-256' },
-  //     false,
-  //     ['verify']
-  //   );
-
-  //   const signature = Uint8Array.from(
-  //     atob(this.base64UrlDecode(signatureB64)), 
-  //     c => c.charCodeAt(0)
-  //   );
-
-  //   const isValid = await crypto.subtle.verify(
-  //     'HMAC',
-  //     key,
-  //     signature,
-  //     new TextEncoder().encode(`${headerB64}.${payloadB64}`)
-  //   );
-
-  //   if (!isValid) {
-  //     throw new Error('Invalid signature');
-  //   }
-
-  //   return payload as JWTPayload;
-  // }
 
   private isExpired(exp: number): boolean {
     return exp * 1000 <= Date.now();

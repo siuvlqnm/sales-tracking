@@ -166,7 +166,7 @@ function TopSalespeopleCard({ topSalespeople }: { topSalespeople: DashboardData[
       </CardHeader>
       <CardContent>
         {topSalespeople.length === 0 ? (
-          <div className="text-center py-4 text-gray-500">暂无数据</div>
+          <div className="text-center py-4 text-gray-500">暂无��据</div>
         ) : (
           <ul className="space-y-3">
             {topSalespeople.map((person, index) => (
@@ -201,22 +201,20 @@ export default function Home() {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
+    if (loading) return;
+    if (!user) {
+      // 处理未登录状态，比如重定向到登录页
+      return;
+    }
 
     async function fetchData() {
-      try {
-        const data = await getDashboardData({ 
-          userId: user!.role === 'salesperson' ? user!.id : undefined,
-          storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
-        });
-        setDashboardData(data);
-      } catch (err) {
-        setError('加载数据失败，请重试');
-        console.error(err);
-      } finally {
-        setDataLoading(false);
-      }
+      const data = await getDashboardData({ 
+        userId: user!.role === 'salesperson' ? user!.id : undefined,
+        storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
+      });
+      setDashboardData(data);
     }
+
     fetchData();
   }, [user, selectedStoreId]);
 

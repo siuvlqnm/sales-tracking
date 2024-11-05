@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { authenticateUser } from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { setAuth } from '@/lib/authUtils';
+import { setAuth, clearAuth, getUser } from '@/lib/authUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from "lucide-react";
 
@@ -38,9 +38,19 @@ export default function AuthPage() {
 
       await setAuth(response.token);
       await refreshUser();
-      router.replace('/');
+      
+      const currentUser = await getUser();
+      if (!currentUser) {
+        throw new Error('登录失败：无法获取用户信息');
+      }
+
+      setTimeout(() => {
+        router.replace('/');
+      }, 100);
+      
     } catch (err: unknown) {
       console.error('Authentication error:', err);
+      clearAuth();
       setFormState(prev => ({
         ...prev,
         error: err instanceof Error ? err.message : '登录失败，请重试'
