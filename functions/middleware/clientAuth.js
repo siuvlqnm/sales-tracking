@@ -55,7 +55,7 @@ export async function validateToken(context, corsHeaders) {
       ['verify']
     );
 
-    const signatureBytes = this.base64UrlDecode(signatureB64);
+    const signatureBytes = base64UrlDecode(signatureB64);
     const isValid = await crypto.subtle.verify(
       'HMAC',
       key,
