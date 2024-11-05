@@ -11,8 +11,8 @@ function base64UrlDecode(input) {
   return atob(paddedBase64);
 }
 
-export async function validateToken(request, corsHeaders) {
-  const authHeader = request.headers.get('Authorization');
+export async function validateToken(context, corsHeaders) {
+  const authHeader = context.request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     throw new Response(JSON.stringify({ message: 'Unauthorized' }), {
       status: 401,

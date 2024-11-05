@@ -15,7 +15,7 @@ export async function onRequest(context) {
 
   if (request.method === 'GET') {
     try {
-      const user = await validateToken(request, corsHeaders);
+      const user = await validateToken(context, corsHeaders);
       const url = new URL(request.url);
       const store_id = url.searchParams.get('store_id');
       
