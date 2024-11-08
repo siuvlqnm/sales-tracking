@@ -82,7 +82,7 @@ export async function onRequest(context) {
         .bind(...recentSalesParams)
         .all();
 
-      // 3. 获取销售排行榜（仅管理员可见，但只显示本店数据）
+      // 3. 获取销售排行榜（仅管理员可见）
       let topSalespeople = { results: [] };
       if (user.role === 'manager') {
         const topSalesQuery = `
@@ -91,14 +91,22 @@ export async function onRequest(context) {
             SUM(sr.actual_amount) as total_sales
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
-          WHERE sr.store_id = ?
-            AND DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          AND sr.store_id IN (
+            SELECT store_id FROM user_stores WHERE user_id = ?
+          )
+          ${store_id ? 'AND sr.store_id = ?' : ''}
           GROUP BY u.user_name
           ORDER BY total_sales DESC
           LIMIT 5
         `;
         
-        const topSalesParams = [user.store_id, firstDay, lastDay];
+        const topSalesParams = [
+          firstDay,
+          lastDay,
+          user.id,
+          ...(store_id ? [store_id] : [])
+        ];
 
         topSalespeople = await db.prepare(topSalesQuery)
           .bind(...topSalesParams)

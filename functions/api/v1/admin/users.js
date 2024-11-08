@@ -94,7 +94,7 @@ export async function onRequest(context) {
 
       // 添加新员工
       await db.prepare(
-        'INSERT INTO users (user_id, user_name, created_at) VALUES (?, ?, datetime("now"))'
+        'INSERT INTO users (user_id, user_name, created_at) VALUES (?, ?, datetime("now", "+8 hours"))'
       ).bind(user_id, user_name.trim()).run();
 
       // 获取新添加的员工信息
