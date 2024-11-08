@@ -69,11 +69,19 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
 
 // 添加一个获取东八区时间戳的辅助函数
 function getChinaTimestamp() {
+  // 获取当前时间
   const now = new Date();
-  // 转换为东八区时间字符串
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  const cst = new Date(utc + (8 * 3600000));
-  return cst.toISOString().slice(0, 19).replace('T', ' ');
+  // 直接使用 toLocaleString 方法，指定时区为 'Asia/Shanghai'
+  return now.toLocaleString('zh-CN', { 
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).replace(/\//g, '-');
 }
 
 // 提交销售记录
