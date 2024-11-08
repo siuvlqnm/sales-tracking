@@ -38,10 +38,16 @@ export async function onRequest(context) {
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
         ${store_id ? 'AND store_id = ?' : ''}
+        ${!isManager ? 'AND user_id = ?' : ''}
         GROUP BY DATE(submission_time)
         ORDER BY date ASC
       `;
-      const dailySalesParams = [start_date, end_date, ...(store_id ? [store_id] : [])];
+      const dailySalesParams = [
+        start_date, 
+        end_date, 
+        ...(store_id ? [store_id] : []),
+        ...(!isManager ? [user.id] : [])
+      ];
 
       const db = env.salesTrackingDB;
       
@@ -86,10 +92,16 @@ export async function onRequest(context) {
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
         ${store_id ? 'AND store_id = ?' : ''}
+        ${!isManager ? 'AND user_id = ?' : ''}
         GROUP BY actual_amount
         ORDER BY count DESC
       `;
-      const productParams = [start_date, end_date, ...(store_id ? [store_id] : [])];
+      const productParams = [
+        start_date, 
+        end_date, 
+        ...(store_id ? [store_id] : []),
+        ...(!isManager ? [user.id] : [])
+      ];
 
       const productPerformance = await db.prepare(productPerformanceQuery)
         .bind(...productParams)
