@@ -17,6 +17,7 @@ export async function onRequest(context) {
     try {
       const user = await validateToken(context, corsHeaders);
       const url = new URL(request.url);
+      const store_id = url.searchParams.get('store_id');
       const start_date = url.searchParams.get('start_date');
       const end_date = url.searchParams.get('end_date');
 
