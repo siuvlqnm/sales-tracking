@@ -100,12 +100,14 @@ export async function verifyAdminToken(): Promise<boolean> {
     const token = localStorage.getItem('adminToken');
     const expires = localStorage.getItem('adminTokenExpires');
 
-    if (!token || !expires) return false;
+    if (!token || !expires) {
+      clearAdminAuth();
+      return false;
+    }
 
     // 检查是否过期
     if (Date.now() > Number(expires)) {
-      localStorage.removeItem('adminToken');
-      localStorage.removeItem('adminTokenExpires');
+      clearAdminAuth();
       return false;
     }
 
@@ -115,10 +117,24 @@ export async function verifyAdminToken(): Promise<boolean> {
       }
     });
 
-    return response.ok;
+    if (!response.ok) {
+      clearAdminAuth();
+      return false;
+    }
+
+    return true;
   } catch {
+    clearAdminAuth();
     return false;
   }
+}
+
+// 添加清除管理员认证的辅助函数
+export function clearAdminAuth() {
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('adminTokenExpires');
+  // 使用 window.location 确保强制跳转
+  window.location.href = '/management-console/login';
 }
 
 // 添加门店

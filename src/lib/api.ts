@@ -67,23 +67,56 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
   return data;
 }
 
+// 添加一个获取东八区时间戳的辅助函数
+function getChinaTimestamp() {
+  const now = new Date();
+  // 获取当前时区的偏移分钟数
+  const localOffset = now.getTimezoneOffset();
+  // 东八区偏移为 -480 分钟（8小时）
+  const targetOffset = -480;
+  // 计算时差并调整时间
+  const timestamp = new Date(now.getTime() + (localOffset + targetOffset) * 60000);
+  return timestamp.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 // 提交销售记录
-export async function submitSalesRecords(
-  storeId: string,
-  amounts: number[]
-): Promise<void> {
+// export async function submitSalesRecords(
+//   storeId: string,
+//   amounts: number[]
+// ): Promise<void> {
+//   const response = await fetchWithAuth('/api/v1/sales/form', {
+//     method: 'POST',
+//     body: JSON.stringify({
+//       store_id: storeId,
+//       amounts: amounts,
+//       timestamp: new Date().toISOString()
+//     }),
+//   });
+
+//   if (!response.ok) {
+//     throw new Error('提交失败');
+//   }
+// }
+
+// 修改提交销售记录的函数
+export async function submitSalesRecords(storeId: string, amounts: number[]) {
+  const timestamp = getChinaTimestamp();
+  
   const response = await fetchWithAuth('/api/v1/sales/form', {
     method: 'POST',
     body: JSON.stringify({
       store_id: storeId,
       amounts: amounts,
-      timestamp: new Date().toISOString()
-    }),
+      timestamp
+    })
   });
 
   if (!response.ok) {
-    throw new Error('提交失败');
+    const error = await response.json();
+    throw new Error(error.message || '提交失败');
   }
+
+  return response.json();
 }
 
 // 查询销售记录
@@ -94,9 +127,15 @@ interface SalesRecordQuery {
 
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   const queryParams = new URLSearchParams();
+  
   if (params.date) {
-    queryParams.set('date', params.date.toISOString().split('T')[0]);
+    // 转换为 YYYY-MM-DD 格式
+    const start_date = params.date.toISOString().split('T')[0];
+    const end_date = start_date; // 同一天的开始和结束
+    queryParams.set('start_date', start_date);
+    queryParams.set('end_date', end_date);
   }
+  
   if (params.storeId && params.storeId !== 'all') {
     queryParams.set('store_id', params.storeId);
   }

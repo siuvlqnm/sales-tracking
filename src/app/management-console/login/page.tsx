@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (token) {
-      router.push('/admin');
+      router.push('/management-console');
     } else {
       setIsLoading(false);
     }
@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
         description: "正在跳转到管理页面...",
       });
 
-      router.push('/admin');
+      router.push('/management-console');
     } catch (error) {
       toast({
         title: "登录失败",

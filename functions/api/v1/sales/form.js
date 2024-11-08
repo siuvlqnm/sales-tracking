@@ -40,21 +40,20 @@ export async function onRequest(context) {
         });
       }
 
-      // 构建批量插入的 SQL
+      // 构建批量插入的 SQL，使用传入的时间戳
       const sql = `
         INSERT INTO sales_records (
           user_id, store_id, actual_amount, 
           submission_time, created_at
-        ) VALUES ${amounts.map(() => '(?, ?, ?, datetime(?), datetime(?))').join(', ')}
+        ) VALUES ${amounts.map(() => '(?, ?, ?, ?, datetime("now", "+8 hours"))').join(', ')}
       `;
 
-      // 展平所有记录的值到一个数组
+      // 展平所有记录的值到一个数组，使用传入的时间戳
       const values = amounts.flatMap(amount => [
         user.id,
         store_id,
         amount,
-        timestamp,
-        timestamp // created_at 使用相同的时间戳
+        timestamp // 使用前端传入的东八区时间戳
       ]);
 
       await db.prepare(sql).bind(...values).run();
