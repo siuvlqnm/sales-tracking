@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       clearAuth();
       setUser(null);
+      console.error('Failed to refresh user:', error);
     } finally {
       setLoading(false);
     }
