@@ -33,17 +33,19 @@ export async function onRequest(context) {
         FROM sales_records sr
         JOIN users u ON sr.user_id = u.user_id
         JOIN stores s ON sr.store_id = s.store_id
-        WHERE 1=1
+        WHERE sr.store_id IN (
+          SELECT store_id FROM user_stores WHERE user_id = ?
+        )
       `;
 
-      const params = [];
+      const params = [user.id];
 
       if (user.role !== 'manager') {
         query += ' AND sr.user_id = ?';
         params.push(user.id);
       }
 
-      if (store_id && store_id !== 'all') {
+      if (store_id) {
         query += ' AND sr.store_id = ?';
         params.push(store_id);
       }

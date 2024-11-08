@@ -19,7 +19,6 @@ export async function onRequest(context) {
       const url = new URL(request.url);
       const start_date = url.searchParams.get('start_date');
       const end_date = url.searchParams.get('end_date');
-      const store_id = url.searchParams.get('store_id');
 
       if (!start_date || !end_date) {
         throw new Error('Missing required date parameters');
@@ -37,6 +36,9 @@ export async function onRequest(context) {
           SUM(actual_amount) as total
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        AND store_id IN (
+          SELECT store_id FROM user_stores WHERE user_id = ?
+        )
         ${store_id ? 'AND store_id = ?' : ''}
         ${!isManager ? 'AND user_id = ?' : ''}
         GROUP BY DATE(submission_time)
@@ -44,7 +46,8 @@ export async function onRequest(context) {
       `;
       const dailySalesParams = [
         start_date, 
-        end_date, 
+        end_date,
+        user.id,
         ...(store_id ? [store_id] : []),
         ...(!isManager ? [user.id] : [])
       ];
@@ -60,7 +63,7 @@ export async function onRequest(context) {
         total: Number(row.total)
       }));
 
-      // 2. 只有管理员才能看到销售人员排名
+      // 2. 只有管理员才能看到销售人员排名（仅本店）
       if (isManager) {
         const topSalespeopleQuery = `
           SELECT 
@@ -69,13 +72,23 @@ export async function onRequest(context) {
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
           WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
-          ${store_id ? 'AND store_id = ?' : ''}
+          AND sr.store_id IN (
+            SELECT store_id FROM user_stores WHERE user_id = ?
+          )
+          ${store_id ? 'AND sr.store_id = ?' : ''}
           GROUP BY u.user_name
           ORDER BY total DESC
           LIMIT 5
         `;
+        const topSalesParams = [
+          start_date, 
+          end_date, 
+          user.id,
+          ...(store_id ? [store_id] : [])
+        ];
+
         const topSalespeople = await db.prepare(topSalespeopleQuery)
-          .bind(start_date, end_date, ...(store_id ? [store_id] : []))
+          .bind(...topSalesParams)
           .all();
 
         response.topSalespeople = topSalespeople.results.map(row => ({
@@ -84,13 +97,16 @@ export async function onRequest(context) {
         }));
       }
 
-      // 3. 获取商品销售数据（按金额分组统计笔数）
+      // 3. 获取商品销售数据
       const productPerformanceQuery = `
         SELECT 
           actual_amount as amount,
           COUNT(*) as count
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        AND store_id IN (
+          SELECT store_id FROM user_stores WHERE user_id = ?
+        )
         ${store_id ? 'AND store_id = ?' : ''}
         ${!isManager ? 'AND user_id = ?' : ''}
         GROUP BY actual_amount
@@ -98,7 +114,8 @@ export async function onRequest(context) {
       `;
       const productParams = [
         start_date, 
-        end_date, 
+        end_date,
+        user.id,
         ...(store_id ? [store_id] : []),
         ...(!isManager ? [user.id] : [])
       ];

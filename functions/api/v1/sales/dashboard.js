@@ -33,15 +33,20 @@ export async function onRequest(context) {
           SUM(actual_amount) as total_amount
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
-        ${user.role === 'manager' ? (store_id ? 'AND store_id = ?' : '') : 'AND user_id = ?'}
+        AND store_id IN (
+          SELECT store_id FROM user_stores WHERE user_id = ?
+        )
+        ${store_id ? 'AND store_id = ?' : ''}
+        ${user.role !== 'manager' ? 'AND user_id = ?' : ''}
       `;
       
-      const performanceParams = [firstDay, lastDay];
-      if (user.role === 'manager') {
-        if (store_id) performanceParams.push(store_id);
-      } else {
-        performanceParams.push(user.id);
-      }
+      const performanceParams = [
+        firstDay, 
+        lastDay,
+        user.id,
+        ...(store_id ? [store_id] : []),
+        ...(user.role !== 'manager' ? [user.id] : [])
+      ];
       
       const performance = await db.prepare(performanceQuery)
         .bind(...performanceParams)
@@ -58,20 +63,26 @@ export async function onRequest(context) {
         FROM sales_records sr
         JOIN users u ON sr.user_id = u.user_id
         JOIN stores s ON sr.store_id = s.store_id
-        WHERE ${user.role === 'manager' ? (store_id ? 'sr.store_id = ?' : '1=1') : 'sr.user_id = ?'}
+        WHERE sr.store_id IN (
+          SELECT store_id FROM user_stores WHERE user_id = ?
+        )
+        ${store_id ? 'AND sr.store_id = ?' : ''}
+        ${user.role !== 'manager' ? 'AND sr.user_id = ?' : ''}
         ORDER BY sr.submission_time DESC
         LIMIT 5
       `;
       
-      const recentSalesParams = user.role === 'manager' 
-        ? (store_id ? [store_id] : [])
-        : [user.id];
+      const recentSalesParams = [
+        user.id,
+        ...(store_id ? [store_id] : []),
+        ...(user.role !== 'manager' ? [user.id] : [])
+      ];
 
       const recentSales = await db.prepare(recentSalesQuery)
         .bind(...recentSalesParams)
         .all();
 
-      // 3. 获取销售排行榜（仅管理员可见）
+      // 3. 获取销售排行榜（仅管理员可见，但只显示本店数据）
       let topSalespeople = { results: [] };
       if (user.role === 'manager') {
         const topSalesQuery = `
@@ -80,16 +91,14 @@ export async function onRequest(context) {
             SUM(sr.actual_amount) as total_sales
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
-          WHERE ${store_id ? 'sr.store_id = ? AND' : ''}
-            DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          WHERE sr.store_id = ?
+            AND DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
           GROUP BY u.user_name
           ORDER BY total_sales DESC
           LIMIT 5
         `;
         
-        const topSalesParams = store_id 
-          ? [store_id, firstDay, lastDay]
-          : [firstDay, lastDay];
+        const topSalesParams = [user.store_id, firstDay, lastDay];
 
         topSalespeople = await db.prepare(topSalesQuery)
           .bind(...topSalesParams)
