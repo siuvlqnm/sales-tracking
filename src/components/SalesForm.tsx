@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
@@ -150,10 +150,23 @@ export default function SalesForm() {
               {isSubmitting ? '提交中...' : '提交'}
             </Button>
             {submitStatus.message && (
-              <Alert variant={submitStatus.success ? "default" : "destructive"}>
-                <AlertDescription className="text-sm">
-                  {submitStatus.message}
-                </AlertDescription>
+              <Alert 
+                variant={submitStatus.success ? "default" : "destructive"}
+                className={`
+                  ${submitStatus.success ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50'} 
+                  shadow-sm
+                `}
+              >
+                <div className="flex items-center">
+                  {submitStatus.success ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
+                  ) : (
+                    <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+                  )}
+                  <AlertDescription className="text-base py-1">
+                    {submitStatus.message}
+                  </AlertDescription>
+                </div>
               </Alert>
             )}
           </CardFooter>

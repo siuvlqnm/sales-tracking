@@ -70,8 +70,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6">
-      <Card className="w-full max-w-md mx-auto">
+    <div className="min-h-screen flex items-start sm:items-center justify-center bg-gray-100 p-4 sm:p-6">
+      <Card className="w-full max-w-md mx-auto mt-[20vh] sm:mt-0">
         <CardHeader className="pb-4 sm:pb-6">
           <CardTitle className="text-xl sm:text-2xl text-center">验证访问权限</CardTitle>
         </CardHeader>
