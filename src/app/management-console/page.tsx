@@ -17,11 +17,9 @@ import {
 } from "@/components/ui/popover"
 import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-// import { useToast } from '@/components/ui/use-toast';
 
 export default function AdminPage() {
   const router = useRouter();
-  // const { toast } = useToast();
   const [stores, setStores] = useState<Store[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [newStoreName, setNewStoreName] = useState('');
@@ -35,7 +33,7 @@ export default function AdminPage() {
   useEffect(() => {
     const adminToken = localStorage.getItem('adminToken');
     if (!adminToken) {
-      router.push('/admin/login');
+      router.push('/management-console/login');
     } else {
       setIsLoading(false);
     }

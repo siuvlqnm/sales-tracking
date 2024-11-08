@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from "lucide-react";
 
-const publicPaths = ['/auth'];
+const publicPaths = ['/auth', '/management-console'];
 
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -20,7 +20,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
   }
 
   const path = pathname.split('?')[0];
-  if (!user && !publicPaths.includes(path)) {
+  if (!user && !publicPaths.includes(path) && !path.startsWith('/management-console')) {
     router.push('/auth');
     return null;
   }

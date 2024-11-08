@@ -8,7 +8,7 @@ const Navbar = () => {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if (!user || pathname?.startsWith('/admin')) {
+  if (!user || pathname?.startsWith('/management-console')) {
     return null;
   }
 
