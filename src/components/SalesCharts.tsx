@@ -28,9 +28,15 @@ export default function SalesCharts() {
       const endDate = new Date();
       const startDate = subDays(endDate, parseInt(timeRange));
       
+      const formatDate = (date: Date) => {
+        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+        const cst = new Date(utc + (8 * 3600000));
+        return format(cst, 'yyyy-MM-dd');
+      };
+
       const data = await getChartData({
-        startDate: format(startDate, 'yyyy-MM-dd'),
-        endDate: format(endDate, 'yyyy-MM-dd'),
+        startDate: formatDate(startDate),
+        endDate: formatDate(endDate),
         storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
       });
       setSalesData(data);

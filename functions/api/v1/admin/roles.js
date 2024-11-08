@@ -10,7 +10,7 @@ export async function onRequest(context) {
     }
     const { corsHeaders } = authResult;
     
-    const db = context.env.salesTrackingDB;
+    const db = env.salesTrackingDB;
 
   try {
     if (request.method === 'POST') {

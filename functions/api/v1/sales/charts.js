@@ -19,6 +19,7 @@ export async function onRequest(context) {
       const url = new URL(request.url);
       const start_date = url.searchParams.get('start_date');
       const end_date = url.searchParams.get('end_date');
+      const store_id = url.searchParams.get('store_id');
 
       if (!start_date || !end_date) {
         throw new Error('Missing required date parameters');
@@ -36,10 +37,11 @@ export async function onRequest(context) {
           SUM(actual_amount) as total
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        ${store_id ? 'AND store_id = ?' : ''}
         GROUP BY DATE(submission_time)
         ORDER BY date ASC
       `;
-      const dailySalesParams = [start_date, end_date];
+      const dailySalesParams = [start_date, end_date, ...(store_id ? [store_id] : [])];
 
       const db = env.salesTrackingDB;
       
@@ -61,12 +63,13 @@ export async function onRequest(context) {
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
           WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          ${store_id ? 'AND store_id = ?' : ''}
           GROUP BY u.user_name
           ORDER BY total DESC
           LIMIT 5
         `;
         const topSalespeople = await db.prepare(topSalespeopleQuery)
-          .bind(start_date, end_date)
+          .bind(start_date, end_date, ...(store_id ? [store_id] : []))
           .all();
 
         response.topSalespeople = topSalespeople.results.map(row => ({
@@ -82,10 +85,11 @@ export async function onRequest(context) {
           COUNT(*) as count
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        ${store_id ? 'AND store_id = ?' : ''}
         GROUP BY actual_amount
         ORDER BY count DESC
       `;
-      const productParams = [start_date, end_date];
+      const productParams = [start_date, end_date, ...(store_id ? [store_id] : [])];
 
       const productPerformance = await db.prepare(productPerformanceQuery)
         .bind(...productParams)

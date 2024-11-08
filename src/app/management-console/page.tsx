@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Toaster } from '@/components/ui/toaster';
-import { addStore, addUser, assignRole, getStores, getUsers, assignStore } from '@/lib/adminApi';
+import { addStore, addUser, assignRole, getStores, getUsers, assignStore, verifyAdminToken } from '@/lib/adminApi';
 import type { Store, User } from '@/lib/adminApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -31,17 +31,26 @@ export default function AdminPage() {
 
   // 检查管理员认证
   useEffect(() => {
-    const adminToken = localStorage.getItem('adminToken');
-    if (!adminToken) {
-      router.push('/management-console/login');
-    } else {
-      setIsLoading(false);
-    }
+    const checkAuth = async () => {
+      try {
+        const isValid = await verifyAdminToken();
+        if (!isValid) {
+          router.push('/management-console/login');
+          return;
+        }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('验证失败:', error);
+        router.push('/management-console/login');
+      }
+    };
+
+    checkAuth();
   }, [router]);
 
   // 加载数据
   useEffect(() => {
-    if (!isLoading) {  // 只在认证完成后加载数据
+    if (!isLoading) {
       const fetchData = async () => {
         try {
           const [storesData, usersData] = await Promise.all([
@@ -52,11 +61,18 @@ export default function AdminPage() {
           setUsers(usersData);
         } catch (error) {
           console.error('加载数据失败:', error);
+          // 如果是认证错误，跳转到登录页
+          if (error instanceof Error && 
+              (error.message.includes('未登录') || 
+               error.message.includes('未授权') || 
+               error.message.includes('无效令牌'))) {
+            router.push('/management-console/login');
+          }
         }
       };
       fetchData();
     }
-  }, [refreshKey, isLoading]);  // 添加 isLoading 作为依赖
+  }, [refreshKey, isLoading, router]);
 
   // 刷新数据
   const refreshData = () => {

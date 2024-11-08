@@ -70,13 +70,10 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
 // 添加一个获取东八区时间戳的辅助函数
 function getChinaTimestamp() {
   const now = new Date();
-  // 获取当前时区的偏移分钟数
-  const localOffset = now.getTimezoneOffset();
-  // 东八区偏移为 -480 分钟（8小时）
-  const targetOffset = -480;
-  // 计算时差并调整时间
-  const timestamp = new Date(now.getTime() + (localOffset + targetOffset) * 60000);
-  return timestamp.toISOString().slice(0, 19).replace('T', ' ');
+  // 转换为东八区时间字符串
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const cst = new Date(utc + (8 * 3600000));
+  return cst.toISOString().slice(0, 19).replace('T', ' ');
 }
 
 // 提交销售记录
@@ -129,11 +126,13 @@ export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<
   const queryParams = new URLSearchParams();
   
   if (params.date) {
+    // 调整为东八区时间
+    const date = new Date(params.date);
+    date.setHours(date.getHours() + 8);
     // 转换为 YYYY-MM-DD 格式
-    const start_date = params.date.toISOString().split('T')[0];
-    const end_date = start_date; // 同一天的开始和结束
-    queryParams.set('start_date', start_date);
-    queryParams.set('end_date', end_date);
+    const formatted_date = date.toISOString().split('T')[0];
+    queryParams.set('start_date', formatted_date);
+    queryParams.set('end_date', formatted_date);
   }
   
   if (params.storeId && params.storeId !== 'all') {
