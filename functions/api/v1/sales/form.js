@@ -15,7 +15,7 @@ export async function onRequest(context) {
 
   if (request.method === 'POST') {
     try {
-      const user = await validateToken(request, corsHeaders);
+      const user = await validateToken(context, corsHeaders);
       const { store_id, amounts, timestamp } = await request.json();
 
       if (!Array.isArray(amounts) || amounts.length === 0) {
@@ -25,7 +25,7 @@ export async function onRequest(context) {
         });
       }
 
-      const db = context.env.salesTrackingDB;
+      const db = env.salesTrackingDB;
 
       // 验证用户权限
       const userStore = await db.prepare(`

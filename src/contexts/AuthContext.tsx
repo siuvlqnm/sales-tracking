@@ -16,22 +16,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshUser = async () => {
-    // const currentUser = await getUser();
-    // setUser(currentUser);
-    // setLoading(false);
     try {
-      console.log('Refreshing user...');
       const currentUser = await getUser();
-      console.log('Got user:', currentUser);
       
       if (!currentUser) {
-        console.log('No user found, clearing auth...');
         clearAuth();
       }
       
       setUser(currentUser);
     } catch (error) {
-      console.error('Failed to refresh user:', error);
       clearAuth();
       setUser(null);
     } finally {

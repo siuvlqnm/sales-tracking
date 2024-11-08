@@ -6,21 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { getChartData, type ChartData } from '@/lib/api';
-import { type User, getUser } from '@/lib/authUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from "lucide-react";
 import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesCharts() {
+  const { user } = useAuth();
   const [timeRange, setTimeRange] = useState('7');
   const [salesData, setSalesData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    getUser().then(setUser);
-  }, []);
 
   const fetchChartData = useCallback(async () => {
     if (!user) return;
@@ -49,10 +45,6 @@ export default function SalesCharts() {
   useEffect(() => {
     fetchChartData();
   }, [fetchChartData]);
-
-  if (!user) {
-    return null;
-  }
 
   if (loading) {
     return (

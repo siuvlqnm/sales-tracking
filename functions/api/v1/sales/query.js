@@ -15,7 +15,7 @@ export async function onRequest(context) {
 
   if (request.method === 'GET') {
     try {
-      const user = await validateToken(request, corsHeaders);
+      const user = await validateToken(context, corsHeaders);
       const url = new URL(request.url);
       const store_id = url.searchParams.get('store_id');
       const start_date = url.searchParams.get('start_date');
@@ -60,7 +60,7 @@ export async function onRequest(context) {
 
       query += ' ORDER BY sr.submission_time DESC';
 
-      const db = context.env.salesTrackingDB;
+      const db = env.salesTrackingDB;
       const records = await db.prepare(query).bind(...params).all();
 
       return new Response(JSON.stringify(records.results), {

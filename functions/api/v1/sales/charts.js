@@ -15,7 +15,7 @@ export async function onRequest(context) {
 
   if (request.method === 'GET') {
     try {
-      const user = await validateToken(request, corsHeaders);
+      const user = await validateToken(context, corsHeaders);
       const url = new URL(request.url);
       const start_date = url.searchParams.get('start_date');
       const end_date = url.searchParams.get('end_date');
@@ -40,8 +40,10 @@ export async function onRequest(context) {
         ORDER BY date ASC
       `;
       const dailySalesParams = [start_date, end_date];
+
+      const db = env.salesTrackingDB;
       
-      const dailySales = await context.env.salesTrackingDB.prepare(dailySalesQuery)
+      const dailySales = await db.prepare(dailySalesQuery)
         .bind(...dailySalesParams)
         .all();
       
@@ -63,7 +65,7 @@ export async function onRequest(context) {
           ORDER BY total DESC
           LIMIT 5
         `;
-        const topSalespeople = await context.env.salesTrackingDB.prepare(topSalespeopleQuery)
+        const topSalespeople = await db.prepare(topSalespeopleQuery)
           .bind(start_date, end_date)
           .all();
 
@@ -85,7 +87,7 @@ export async function onRequest(context) {
       `;
       const productParams = [start_date, end_date];
 
-      const productPerformance = await context.env.salesTrackingDB.prepare(productPerformanceQuery)
+      const productPerformance = await db.prepare(productPerformanceQuery)
         .bind(...productParams)
         .all();
 

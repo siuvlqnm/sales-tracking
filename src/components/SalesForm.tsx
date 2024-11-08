@@ -14,36 +14,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { type User, getUser } from '@/lib/authUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import { submitSalesRecords } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesForm() {
+  const { user } = useAuth();
   const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const userData = await getUser();
-      setUser(userData);
-    };
-    loadUser();
-  }, []);
 
   useEffect(() => {
     if (user?.storeIds.length === 1) {
       setSelectedStoreId(user.storeIds[0]);
     }
   }, [user]);
-
-  if (!user) {
-    return null;
-  }
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框

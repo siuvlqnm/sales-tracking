@@ -70,13 +70,13 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">验证访问权限</CardTitle>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4 sm:p-6">
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-xl sm:text-2xl text-center">验证访问权限</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
               <Input
                 value={formState.trackingId}
@@ -85,21 +85,22 @@ export default function AuthPage() {
                 disabled={formState.loading}
                 autoFocus
                 aria-label="令牌 ID"
+                className="h-12 sm:h-10 text-base px-4"
               />
               {formState.error && (
-                <div className="text-red-500 text-sm" role="alert">
+                <div className="text-red-500 text-sm px-1" role="alert">
                   {formState.error}
                 </div>
               )}
             </div>
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full h-12 sm:h-10 text-base"
               disabled={formState.loading || !formState.trackingId.trim()}
             >
               {formState.loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   验证中...
                 </>
               ) : (

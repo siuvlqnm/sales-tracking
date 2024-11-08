@@ -19,7 +19,7 @@ export async function onRequest(context) {
       const url = new URL(request.url);
       const store_id = url.searchParams.get('store_id');
       
-      const db = context.env.salesTrackingDB;
+      const db = env.salesTrackingDB;
       
       // 获取当月第一天和最后一天
       const now = new Date();
