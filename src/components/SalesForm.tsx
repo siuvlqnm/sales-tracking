@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { submitSalesRecords } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
+import { getUserStores } from '@/lib/authUtils';
 
 export default function SalesForm() {
   const { user } = useAuth();
@@ -26,6 +27,21 @@ export default function SalesForm() {
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
   const [showResultDialog, setShowResultDialog] = useState(false);
+
+  useEffect(() => {
+    const initializeStore = async () => {
+      try {
+        const stores = await getUserStores();
+        if (stores && stores.length === 1) {
+          setSelectedStoreId(stores[0].store_id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch stores:', error);
+      }
+    };
+
+    initializeStore();
+  }, []);
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
