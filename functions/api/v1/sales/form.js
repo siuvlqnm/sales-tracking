@@ -25,7 +25,7 @@ export async function onRequest(context) {
         });
       }
 
-      const db = env.salesTrackingDB;
+      const db = env.SALES_TRACKING_DB;
 
       // 验证用户权限
       const userStore = await db.prepare(`

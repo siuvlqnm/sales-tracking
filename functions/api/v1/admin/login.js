@@ -25,7 +25,7 @@ export async function onRequest(context) {
         });
       }
 
-      const db = env.salesTrackingDB;
+      const db = env.SALES_TRACKING_DB;
 
       // 密码哈希
       const encoder = new TextEncoder();

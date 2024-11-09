@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getUser, type User } from '@/lib/authUtils';
+import { getUserStores, type Store } from '@/lib/authUtils';
 
 interface StoreSelectorProps {
   value: string;
@@ -11,15 +11,17 @@ interface StoreSelectorProps {
 }
 
 export function StoreSelector({ value, onChange, className }: StoreSelectorProps) {
-  const [user, setUser] = React.useState<User | null>(null);
+  const [stores, setStores] = React.useState<Store[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    getUser().then(setUser);
+    getUserStores()
+      .then((stores) => setStores(stores ?? []))
+      .finally(() => setLoading(false));
   }, []);
 
-  const hasMultipleStores = user?.storeIds && user.storeIds.length > 1;
-
-  if (!hasMultipleStores) return null;
+  if (loading) return null;
+  if (!stores || stores.length <= 1) return null;
 
   return (
     <Select value={value} onValueChange={onChange}>
@@ -28,9 +30,9 @@ export function StoreSelector({ value, onChange, className }: StoreSelectorProps
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="all">全部门店</SelectItem>
-        {user?.storeIds.map(storeId => (
-          <SelectItem key={storeId} value={storeId}>
-            {user.storeNames[storeId]}
+        {stores.map(store => (
+          <SelectItem key={store.store_id} value={store.store_id}>
+            {store.store_name}
           </SelectItem>
         ))}
       </SelectContent>

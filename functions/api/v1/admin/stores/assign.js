@@ -8,7 +8,7 @@ export async function onRequest(context) {
     return authResult;
   }
   const { corsHeaders } = authResult;
-  const db = env.salesTrackingDB;
+  const db = env.SALES_TRACKING_DB;
 
   try {
     if (request.method === 'POST') {
@@ -51,6 +51,10 @@ export async function onRequest(context) {
           GROUP BY u.user_id
         `).bind(user_id)
       ]);
+
+      // 清除用户的门店缓存
+      const cacheKey = `stores:${user_id}`;
+      await env.SALES_TRACKING_CACHE.delete(cacheKey);
 
       // 获取最后一个查询的结果（更新后的用户信息）
       const userData = updatedUser[updatedUser.length - 1];

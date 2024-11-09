@@ -20,7 +20,7 @@ export async function adminAuthMiddleware(request, env) {
 
   const token = authHeader.split(' ')[1];
   try {
-    const db = env.salesTrackingDB;
+    const db = env.SALES_TRACKING_DB;
     const admin = await db.prepare(
       'SELECT * FROM admins WHERE token = ? AND token_expires > datetime("now", "+8 hours")'
     ).bind(token).first();

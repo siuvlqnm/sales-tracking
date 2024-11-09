@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Plus, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,12 +27,6 @@ export default function SalesForm() {
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
 
-  useEffect(() => {
-    if (user?.storeIds.length === 1) {
-      setSelectedStoreId(user.storeIds[0]);
-    }
-  }, [user]);
-
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
       setAmounts([...amounts, '']);
@@ -58,6 +52,14 @@ export default function SalesForm() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!selectedStoreId) {
+      setSubmitStatus({ 
+        success: false, 
+        message: '请选择门店' 
+      });
+      return;
+    }
 
     setValidAmounts(amounts.filter(amount => amount).map(amount => parseFloat(amount)));
     setShowConfirmDialog(true);

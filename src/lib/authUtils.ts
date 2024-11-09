@@ -2,8 +2,11 @@ export interface User {
   id: string;
   name: string;
   role: 'manager' | 'salesperson';
-  storeIds: string[];
-  storeNames: { [key: string]: string };
+}
+
+export interface Store {
+  store_id: string;
+  store_name: string;
 }
 
 interface JWTPayload {
@@ -147,6 +150,26 @@ class TokenService {
     }
   }
 
+  async getUserStores(): Promise<Store[]> {
+    const token = this.getToken();
+    if (!token) return [];
+
+    try {
+      const response = await fetch('/api/v1/sales/stores', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch stores');
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get user stores:', error);
+      return [];
+    }
+  }
+
   getAuthHeader(): { Authorization: string } | Record<string, never> {
     const token = this.getToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -172,6 +195,7 @@ const tokenService = TokenService.getInstance();
 // 导出简化的公共接口
 export const setAuth = (token: string) => tokenService.setToken(token);
 export const getUser = () => tokenService.getUser();
+export const getUserStores = () => tokenService.getUserStores();
 export const clearAuth = () => tokenService.clearToken();
 export const getAuthHeader = () => tokenService.getAuthHeader();
 export const isTokenExpired = () => !tokenService.isAuthenticated();

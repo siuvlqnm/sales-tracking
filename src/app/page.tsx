@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -195,12 +195,6 @@ export default function Home() {
   const [selectedStoreId, setSelectedStoreId] = useState<string>('all');
 
   useEffect(() => {
-    if (!user) return;
-
-    setSelectedStoreId(user.storeIds.length === 1 ? user.storeIds[0] : 'all');
-  }, [user]);
-
-  useEffect(() => {
     if (loading) return;
     if (!user) return;
 
@@ -208,7 +202,7 @@ export default function Home() {
       try {
         setIsLoading(true);
         const data = await getDashboardData({ 
-          userId: user!.role === 'salesperson' ? user!.id : undefined,
+          userId: user?.role === 'salesperson' ? user.id : undefined,
           storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
         });
         setDashboardData(data);

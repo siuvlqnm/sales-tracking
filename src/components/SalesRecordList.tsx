@@ -26,7 +26,7 @@ export default function SalesRecordList() {
       setLoading(true);
       const data = await querySalesRecords({
         date: date || undefined,
-        storeId: selectedStoreId
+        storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
       });
       setRecords(data);
     } catch (error) {
@@ -39,12 +39,6 @@ export default function SalesRecordList() {
   useEffect(() => {
     fetchRecords();
   }, [fetchRecords]);
-
-  useEffect(() => {
-    if (user?.storeIds.length === 1) {
-      setSelectedStoreId(user.storeIds[0]);
-    }
-  }, [user]);
 
   const handleDateReset = () => {
     setDate(undefined);

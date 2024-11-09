@@ -53,7 +53,7 @@ export async function onRequest(context) {
         ...(!isManager ? [user.id] : [])
       ];
 
-      const db = env.salesTrackingDB;
+      const db = env.SALES_TRACKING_DB;
       
       const dailySales = await db.prepare(dailySalesQuery)
         .bind(...dailySalesParams)
