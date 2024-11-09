@@ -53,7 +53,8 @@ export default function SalesForm() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedStoreId) {
+    const storeSelector = document.querySelector('[data-store-selector]');  // 检查 StoreSelector 是否显示
+    if (storeSelector && !selectedStoreId) {  // 只在 StoreSelector 显示时才验证
       setSubmitStatus({ 
         success: false, 
         message: '请选择门店' 
