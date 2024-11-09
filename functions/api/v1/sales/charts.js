@@ -36,7 +36,8 @@ export async function onRequest(context) {
           DATE(submission_time) as date,
           SUM(actual_amount) as total
         FROM sales_records
-        WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        WHERE submission_time >= datetime(?) 
+        AND submission_time < datetime(?, '+1 day')
         AND store_id IN (
           SELECT store_id FROM user_stores WHERE user_id = ?
         )
@@ -72,7 +73,8 @@ export async function onRequest(context) {
             SUM(sr.actual_amount) as total
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
-          WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          WHERE sr.submission_time >= datetime(?) 
+          AND sr.submission_time < datetime(?, '+1 day')
           AND sr.store_id IN (
             SELECT store_id FROM user_stores WHERE user_id = ?
           )
@@ -104,7 +106,8 @@ export async function onRequest(context) {
           actual_amount as amount,
           COUNT(*) as count
         FROM sales_records
-        WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        WHERE submission_time >= datetime(?) 
+        AND submission_time < datetime(?, '+1 day')
         AND store_id IN (
           SELECT store_id FROM user_stores WHERE user_id = ?
         )
