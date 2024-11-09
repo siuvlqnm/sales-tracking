@@ -16,12 +16,24 @@ export function StoreSelector({ value, onChange, className }: StoreSelectorProps
 
   React.useEffect(() => {
     getUserStores()
-      .then((stores) => setStores(stores ?? []))
+      .then((stores) => {
+        setStores(stores ?? []);
+        if (stores && stores.length === 1) {
+          onChange(stores[0].store_id);
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [onChange]);
 
   if (loading) return null;
-  if (!stores || stores.length <= 1) return null;
+  if (stores.length === 1) {
+    return (
+      <div className={`h-10 px-3 py-2 border rounded-md text-sm ${className}`}>
+        {stores[0].store_name}
+      </div>
+    );
+  }
+  if (stores.length === 0) return null;
 
   return (
     <Select value={value} onValueChange={onChange}>

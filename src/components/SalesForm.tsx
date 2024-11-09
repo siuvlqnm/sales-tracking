@@ -54,6 +54,7 @@ export default function SalesForm() {
         success: false, 
         message: '请至少输入一个有效金额' 
       });
+      setShowResultDialog(true);
       return;
     }
 
@@ -62,6 +63,7 @@ export default function SalesForm() {
         success: false, 
         message: '请选择门店' 
       });
+      setShowResultDialog(true);
       return;
     }
 
@@ -72,6 +74,7 @@ export default function SalesForm() {
         success: false, 
         message: '请确保所有金额在0-1000000之间' 
       });
+      setShowResultDialog(true);
       return;
     }
 
