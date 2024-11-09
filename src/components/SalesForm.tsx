@@ -5,7 +5,6 @@ import { Plus, Trash2, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +25,7 @@ export default function SalesForm() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
+  const [showResultDialog, setShowResultDialog] = useState(false);
 
   const handleAddAmount = () => {
     if (amounts.length < 10) { // 限制最多10个输入框
@@ -39,12 +39,6 @@ export default function SalesForm() {
   };
 
   const handleAmountChange = (index: number, value: string) => {
-    // 验证输入值
-    const numValue = parseFloat(value);
-    if (value && (isNaN(numValue) || numValue < 0 || numValue > 1000000)) {
-      return; // 不允许负数或超过100万的数值
-    }
-    
     const newAmounts = [...amounts];
     newAmounts[index] = value;
     setAmounts(newAmounts);
@@ -53,8 +47,17 @@ export default function SalesForm() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const storeSelector = document.querySelector('[data-store-selector]');  // 检查 StoreSelector 是否显示
-    if (storeSelector && !selectedStoreId) {  // 只在 StoreSelector 显示时才验证
+    // 验证是否有有效金额
+    const validAmountsList = amounts.filter(amount => amount.trim() !== '');
+    if (validAmountsList.length === 0) {
+      setSubmitStatus({ 
+        success: false, 
+        message: '请至少输入一个有效金额' 
+      });
+      return;
+    }
+
+    if (!selectedStoreId) {
       setSubmitStatus({ 
         success: false, 
         message: '请选择门店' 
@@ -62,7 +65,17 @@ export default function SalesForm() {
       return;
     }
 
-    setValidAmounts(amounts.filter(amount => amount).map(amount => parseFloat(amount)));
+    // 验证所有金额是否有效
+    const numericAmounts = validAmountsList.map(amount => parseFloat(amount));
+    if (numericAmounts.some(amount => isNaN(amount) || amount <= 0 || amount > 1000000)) {
+      setSubmitStatus({ 
+        success: false, 
+        message: '请确保所有金额在0-1000000之间' 
+      });
+      return;
+    }
+
+    setValidAmounts(numericAmounts);
     setShowConfirmDialog(true);
   };
 
@@ -70,21 +83,22 @@ export default function SalesForm() {
     if (!user || !selectedStoreId) return;
 
     setIsSubmitting(true);
-    setSubmitStatus({ success: false, message: '' });
-
     try {
       await submitSalesRecords(selectedStoreId, validAmounts);
       setSubmitStatus({ 
         success: true, 
-        message: `提交成功！` 
+        message: '提交成功！' 
       });
       setAmounts(['']);
       setShowConfirmDialog(false);
+      setShowResultDialog(true);
     } catch (error) {
       setSubmitStatus({ 
         success: false, 
         message: error instanceof Error ? error.message : '提交失败，请重试。' 
       });
+      setShowConfirmDialog(false);
+      setShowResultDialog(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -152,26 +166,6 @@ export default function SalesForm() {
               {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isSubmitting ? '提交中...' : '提交'}
             </Button>
-            {submitStatus.message && (
-              <Alert 
-                variant={submitStatus.success ? "default" : "destructive"}
-                className={`
-                  ${submitStatus.success ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50'} 
-                  shadow-sm
-                `}
-              >
-                <div className="flex items-center">
-                  {submitStatus.success ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
-                  )}
-                  <AlertDescription className="text-base py-1">
-                    {submitStatus.message}
-                  </AlertDescription>
-                </div>
-              </Alert>
-            )}
           </CardFooter>
         </form>
       </Card>
@@ -216,6 +210,33 @@ export default function SalesForm() {
               ) : (
                 '确认提交'
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              {submitStatus.success ? (
+                <CheckCircle2 className="h-5 w-5 text-green-600 mr-2" />
+              ) : (
+                <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              )}
+              {submitStatus.success ? '提交成功' : '提交失败'}
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              {submitStatus.message}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              onClick={() => setShowResultDialog(false)}
+              className={submitStatus.success ? 'bg-green-600 hover:bg-green-700' : ''}
+            >
+              确定
             </Button>
           </DialogFooter>
         </DialogContent>
