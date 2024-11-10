@@ -22,12 +22,12 @@ function SalespersonView({ dashboardData, storeId, onStoreChange }: DashboardVie
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">欢迎回来，{user.name}老师</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl font-bold shrink-0">欢迎回来，{user.name}老师</h1>
         <StoreSelector 
           value={storeId}
           onChange={onStoreChange}
-          className="w-[180px]"
+          className="w-full sm:w-[180px]"
         />
       </div>
 
@@ -45,12 +45,12 @@ function ManagerView({ dashboardData, storeId, onStoreChange }: DashboardViewPro
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">{user.name}老师，团队业绩概览</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl font-bold shrink-0">{user.name}老师，团队业绩概览</h1>
         <StoreSelector 
           value={storeId}
           onChange={onStoreChange}
-          className="w-[180px]"
+          className="w-full sm:w-[180px]"
         />
       </div>
 
