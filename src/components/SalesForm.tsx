@@ -58,23 +58,6 @@ export default function SalesForm() {
     initializeStore();
   }, []);
 
-  const handleAddAmount = () => {
-    if (amounts.length < 10) { // 限制最多10个输入框
-      setAmounts([...amounts, '']);
-    }
-  };
-
-  const handleRemoveAmount = (index: number) => {
-    const newAmounts = amounts.filter((_, i) => i !== index);
-    setAmounts(newAmounts);
-  };
-
-  const handleAmountChange = (index: number, value: string) => {
-    const newAmounts = [...amounts];
-    newAmounts[index] = value;
-    setAmounts(newAmounts);
-  };
-
   const handleAddRecord = () => {
     if (records.length < 10) {
       setRecords([...records, {
