@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Loader2, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -40,10 +40,6 @@ export default function SalesRecordList() {
     fetchRecords();
   }, [fetchRecords]);
 
-  const handleDateReset = () => {
-    setDate(undefined);
-  };
-
   if (!user) {
     return null;
   }
@@ -52,40 +48,28 @@ export default function SalesRecordList() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">成交记录</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="flex gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "flex-1 justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>选择日期</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          {date && (
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={handleDateReset}
-              title="清除日期筛选"
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant={"outline"}
+              className={cn(
+                "flex-1 justify-start text-left font-normal",
+                !date && "text-muted-foreground"
+              )}
             >
-              <X className="h-4 w-4" />
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP") : <span>选择日期</span>}
             </Button>
-          )}
-        </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
 
         <StoreSelector 
           value={selectedStoreId}
@@ -105,7 +89,7 @@ export default function SalesRecordList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>老师</TableHead>
+                {user?.role !== 'salesperson' && <TableHead>老师</TableHead>}
                 <TableHead>门店</TableHead>
                 <TableHead className="text-right">金额</TableHead>
                 <TableHead className="text-right">时间</TableHead>
@@ -114,7 +98,7 @@ export default function SalesRecordList() {
             <TableBody>
               {records.map((record) => (
                 <TableRow key={record.id}>
-                  <TableCell>{record.user_name}</TableCell>
+                  {user?.role !== 'salesperson' && <TableCell>{record.user_name}</TableCell>}
                   <TableCell>{record.store_name}</TableCell>
                   <TableCell className="text-right">
                     ¥{record.actual_amount.toLocaleString('zh-CN', { 

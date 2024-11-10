@@ -12,7 +12,7 @@ import { StoreSelector } from '@/components/ui/store-selector';
 
 export default function SalesCharts() {
   const { user } = useAuth();
-  const [timeRange, setTimeRange] = useState('7');
+  const [timeRange, setTimeRange] = useState(format(new Date(), 'yyyy-MM'));
   const [salesData, setSalesData] = useState<ChartData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,8 +25,9 @@ export default function SalesCharts() {
     setError('');
     
     try {
-      const endDate = new Date();
-      const startDate = subDays(endDate, parseInt(timeRange));
+      const [year, month] = timeRange.split('-').map(Number);
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0);
       
       const formatDate = (date: Date) => {
         const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
@@ -78,12 +79,20 @@ export default function SalesCharts() {
       <div className="flex flex-wrap gap-4 mb-6">
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="选择时间范围" />
+            <SelectValue placeholder="选择月份" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7">过去7天</SelectItem>
-            <SelectItem value="30">过去30天</SelectItem>
-            <SelectItem value="90">过去90天</SelectItem>
+            {[...Array(3)].map((_, index) => {
+              const date = new Date();
+              date.setMonth(date.getMonth() - index);
+              const value = format(date, 'yyyy-MM');
+              const label = format(date, 'yyyy年M月');
+              return (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 

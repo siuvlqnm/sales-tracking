@@ -190,7 +190,7 @@ export default function SalesForm() {
       </Card>
 
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>确认提交</DialogTitle>
             <DialogDescription className="pt-4">
@@ -207,12 +207,13 @@ export default function SalesForm() {
               </div>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               取消
             </Button>
@@ -220,6 +221,7 @@ export default function SalesForm() {
               type="button"
               onClick={handleConfirmedSubmit}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               {isSubmitting ? (
                 <>
@@ -235,7 +237,7 @@ export default function SalesForm() {
       </Dialog>
 
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               {submitStatus.success ? (
@@ -249,11 +251,11 @@ export default function SalesForm() {
               {submitStatus.message}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="sm:justify-center">
+          <DialogFooter>
             <Button
               type="button"
               onClick={() => setShowResultDialog(false)}
-              className={submitStatus.success ? 'bg-green-600 hover:bg-green-700' : ''}
+              className={`w-full ${submitStatus.success ? 'bg-green-600 hover:bg-green-700' : ''}`}
             >
               确定
             </Button>
