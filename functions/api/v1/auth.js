@@ -17,16 +17,11 @@ export async function onRequest(context) {
       const db = env.SALES_TRACKING_DB;
       const userInfo = await db.prepare(`
         SELECT 
-          u.user_id,
-          u.user_name,
-          u.role_id,
-          GROUP_CONCAT(s.store_id) as store_ids,
-          GROUP_CONCAT(s.store_name) as store_names
-        FROM users u
-        JOIN user_stores us ON u.user_id = us.user_id
-        JOIN stores s ON us.store_id = s.store_id
-        WHERE u.user_id = ?
-        GROUP BY u.user_id, u.user_name, u.role_id
+          user_id,
+          user_name,
+          role_id
+        FROM users 
+        WHERE user_id = ?
       `).bind(user_id).first();
 
       if (!userInfo) {
@@ -39,15 +34,8 @@ export async function onRequest(context) {
       const user = {
         id: userInfo.user_id,
         name: userInfo.user_name,
-        role: userInfo.role_id === 1 ? 'manager' : 'salesperson',
-        storeIds: userInfo.store_ids.split(','),
-        storeNames: Object.fromEntries(
-          userInfo.store_ids.split(',').map((id, index) => [
-            id,
-            userInfo.store_names.split(',')[index]
-          ])
-        )
-      };
+        role: userInfo.role_id === 1 ? 'manager' : 'salesperson'
+      }; 
 
       function base64UrlEncode(input) {
         let binary;
