@@ -162,7 +162,7 @@ function TopSalespeopleCard({ topSalespeople }: { topSalespeople: DashboardData[
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Top老师</CardTitle>
+        <CardTitle>Top 老师</CardTitle>
       </CardHeader>
       <CardContent>
         {topSalespeople.length === 0 ? (
