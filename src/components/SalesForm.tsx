@@ -18,6 +18,14 @@ import { submitSalesRecords } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 import { getUserStores } from '@/lib/authUtils';
 
+interface SalesRecord {
+  amount: string;
+  customerName: string;
+  phoneNumber: string;
+  cardType: string;
+  notes: string;
+}
+
 export default function SalesForm() {
   const { user } = useAuth();
   const [amounts, setAmounts] = useState(['']);
@@ -27,6 +35,13 @@ export default function SalesForm() {
   const [validAmounts, setValidAmounts] = useState<number[]>([]);
   const [selectedStoreId, setSelectedStoreId] = useState('');
   const [showResultDialog, setShowResultDialog] = useState(false);
+  const [records, setRecords] = useState<SalesRecord[]>([{
+    amount: '',
+    customerName: '',
+    phoneNumber: '',
+    cardType: '',
+    notes: ''
+  }]);
 
   useEffect(() => {
     const initializeStore = async () => {
@@ -60,15 +75,42 @@ export default function SalesForm() {
     setAmounts(newAmounts);
   };
 
+  const handleAddRecord = () => {
+    if (records.length < 10) {
+      setRecords([...records, {
+        amount: '',
+        customerName: '',
+        phoneNumber: '',
+        cardType: '',
+        notes: ''
+      }]);
+    }
+  };
+
+  const handleRemoveRecord = (index: number) => {
+    const newRecords = records.filter((_, i) => i !== index);
+    setRecords(newRecords);
+  };
+
+  const handleRecordChange = (index: number, field: keyof SalesRecord, value: string) => {
+    const newRecords = [...records];
+    newRecords[index] = { ...newRecords[index], [field]: value };
+    setRecords(newRecords);
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 验证是否有有效金额
-    const validAmountsList = amounts.filter(amount => amount.trim() !== '');
-    if (validAmountsList.length === 0) {
+    const validRecords = records.filter(record => 
+      record.amount.trim() !== '' && 
+      record.customerName.trim() !== '' && 
+      record.cardType.trim() !== ''
+    );
+
+    if (validRecords.length === 0) {
       setSubmitStatus({ 
         success: false, 
-        message: '请至少输入一个有效金额' 
+        message: '请至少输入一条完整的销售记录（金额、客户姓名和卡项为必填）' 
       });
       setShowResultDialog(true);
       return;
@@ -84,7 +126,7 @@ export default function SalesForm() {
     }
 
     // 验证所有金额是否有效
-    const numericAmounts = validAmountsList.map(amount => parseFloat(amount));
+    const numericAmounts = validRecords.map(record => parseFloat(record.amount));
     if (numericAmounts.some(amount => isNaN(amount) || amount <= 0 || amount > 1000000)) {
       setSubmitStatus({ 
         success: false, 
@@ -139,40 +181,70 @@ export default function SalesForm() {
               onChange={setSelectedStoreId}
               className="w-full"
             />
-            {amounts.map((amount, index) => (
-              <div key={index} className="flex items-center space-x-2">
+            {records.map((record, index) => (
+              <div key={index} className="space-y-3 p-4 border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">记录 #{index + 1}</h3>
+                  {records.length > 1 && (
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon"
+                      onClick={() => handleRemoveRecord(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input
+                    type="text"
+                    placeholder="客户姓名 *"
+                    value={record.customerName}
+                    onChange={(e) => handleRecordChange(index, 'customerName', e.target.value)}
+                    required
+                  />
+                  <Input
+                    type="text"
+                    placeholder="卡项 *"
+                    value={record.cardType}
+                    onChange={(e) => handleRecordChange(index, 'cardType', e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    placeholder="金额 *"
+                    value={record.amount}
+                    onChange={(e) => handleRecordChange(index, 'amount', e.target.value)}
+                    required
+                    min="0"
+                    max="1000000"
+                    step="0.01"
+                  />
+                  <Input
+                    type="tel"
+                    placeholder="手机号"
+                    value={record.phoneNumber}
+                    onChange={(e) => handleRecordChange(index, 'phoneNumber', e.target.value)}
+                    required
+                  />
+                </div>
                 <Input
-                  type="number"
-                  inputMode="decimal"
-                  placeholder="请输入金额"
-                  value={amount}
-                  onChange={(e) => handleAmountChange(index, e.target.value)}
-                  required
-                  min="0"
-                  max="1000000"
-                  step="0.01"
-                  className="flex-grow text-base"
+                  type="text"
+                  placeholder="备注"
+                  value={record.notes}
+                  onChange={(e) => handleRecordChange(index, 'notes', e.target.value)}
                 />
-                {amounts.length > 1 && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => handleRemoveAmount(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
             ))}
-            {amounts.length < 10 && (
+            {records.length < 10 && (
               <Button
                 type="button"
                 variant="outline"
                 className="w-full mt-2"
-                onClick={handleAddAmount}
+                onClick={handleAddRecord}
               >
-                <Plus className="h-4 w-4 mr-2" /> 添加金额
+                <Plus className="h-4 w-4 mr-2" /> 添加记录
               </Button>
             )}
           </CardContent>

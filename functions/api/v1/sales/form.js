@@ -40,20 +40,35 @@ export async function onRequest(context) {
         });
       }
 
-      // 构建批量插入的 SQL，使用传入的时间戳
+      // 修改数据库表结构的 SQL：
+      /*
+      ALTER TABLE sales_records ADD COLUMN customer_name TEXT;
+      ALTER TABLE sales_records ADD COLUMN phone_number TEXT;
+      ALTER TABLE sales_records ADD COLUMN card_type TEXT;
+      ALTER TABLE sales_records ADD COLUMN notes TEXT;
+      */
+
+      // 修改插入语句：
       const sql = `
         INSERT INTO sales_records (
           user_id, store_id, actual_amount, 
+          customer_name, phone_number, card_type, notes,
           submission_time, created_at
-        ) VALUES ${amounts.map(() => '(?, ?, ?, ?, datetime("now", "+8 hours"))').join(', ')}
+        ) VALUES ${amounts.map(() => 
+          '(?, ?, ?, ?, ?, ?, ?, ?, datetime("now", "+8 hours"))'
+        ).join(', ')}
       `;
 
-      // 展平所有记录的值到一个数组，使用传入的时间戳
-      const values = amounts.flatMap(amount => [
+      // 展平所有记录的值
+      const values = records.flatMap(record => [
         user.id,
         store_id,
-        amount,
-        timestamp // 使用前端传入的东八区时间戳
+        record.amount,
+        record.customerName,
+        record.phoneNumber,
+        record.cardType,
+        record.notes,
+        timestamp
       ]);
 
       await db.prepare(sql).bind(...values).run();
