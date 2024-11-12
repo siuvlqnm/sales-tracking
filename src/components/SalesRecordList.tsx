@@ -107,7 +107,7 @@ export default function SalesRecordList() {
                     })}
                   </TableCell>
                   <TableCell className="text-right">
-                    {format(new Date(record.submission_time), 'yyyy-MM-dd HH:mm:ss')}
+                    {format(new Date(record.submit_ts), 'yyyy-MM-dd HH:mm:ss')}
                   </TableCell>
                 </TableRow>
               ))}

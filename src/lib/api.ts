@@ -5,7 +5,7 @@ export type SalesRecord = {
   user_name: string;
   store_name: string;
   actual_amount: number;
-  submission_time: string;
+  submit_ts: number;
 }
 
 // API 请求基础配置
@@ -68,40 +68,9 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
 }
 
 // 添加一个获取东八区时间戳的辅助函数
-function getChinaTimestamp() {
-  // 获取当前时间
-  const now = new Date();
-  // 直接使用 toLocaleString 方法，指定时区为 'Asia/Shanghai'
-  return now.toLocaleString('zh-CN', { 
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).replace(/\//g, '-');
+function getChinaTimestamp(): number {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })).getTime();
 }
-
-// 提交销售记录
-// export async function submitSalesRecords(
-//   storeId: string,
-//   amounts: number[]
-// ): Promise<void> {
-//   const response = await fetchWithAuth('/api/v1/sales/form', {
-//     method: 'POST',
-//     body: JSON.stringify({
-//       store_id: storeId,
-//       amounts: amounts,
-//       timestamp: new Date().toISOString()
-//     }),
-//   });
-
-//   if (!response.ok) {
-//     throw new Error('提交失败');
-//   }
-// }
 
 // 修改提交销售记录的函数
 export async function submitSalesRecords(storeId: string, amounts: number[]) {

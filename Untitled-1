@@ -10,7 +10,7 @@
     user_id, 
     store_id, 
     actual_amount, 
-    submission_time, 
+    submit_ts, 
     created_at
 ) VALUES 
 (113847014537695232, 113846712069656576, 298, '2024-11-02 21:01:00', '2024-11-02 21:02:00'),
