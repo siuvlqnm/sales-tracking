@@ -37,7 +37,7 @@ export async function onRequest(context) {
 
       // 查询管理员
       const admin = await db.prepare(
-        'SELECT * FROM admins WHERE username = ? AND password = ?'
+        'SELECT * FROM admins WHERE admin_name = ? AND pwd_hash = ?'
       ).bind(username, hashedPassword).first();
 
       if (!admin) {

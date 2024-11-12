@@ -38,7 +38,7 @@ export async function onRequest(context) {
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
         AND store_id IN (
-          SELECT store_id FROM user_stores WHERE user_id = ?
+          SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
         ${store_id ? 'AND store_id = ?' : ''}
         ${!isManager ? 'AND user_id = ?' : ''}
@@ -74,7 +74,7 @@ export async function onRequest(context) {
           JOIN users u ON sr.user_id = u.user_id
           WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
           AND sr.store_id IN (
-            SELECT store_id FROM user_stores WHERE user_id = ?
+            SELECT store_id FROM user_store_rel WHERE user_id = ?
           )
           ${store_id ? 'AND sr.store_id = ?' : ''}
           GROUP BY u.user_name
@@ -106,7 +106,7 @@ export async function onRequest(context) {
         FROM sales_records
         WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
         AND store_id IN (
-          SELECT store_id FROM user_stores WHERE user_id = ?
+          SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
         ${store_id ? 'AND store_id = ?' : ''}
         ${!isManager ? 'AND user_id = ?' : ''}

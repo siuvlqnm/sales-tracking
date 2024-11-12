@@ -25,12 +25,12 @@ export async function onRequest(context) {
       // 使用 D1 事务 API
       const updatedUser = await db.batch([
         // 首先删除现有的门店分配
-        db.prepare('DELETE FROM user_stores WHERE user_id = ?').bind(user_id),
+        db.prepare('DELETE FROM user_store_rel WHERE user_id = ?').bind(user_id),
         
         // 然后添加新的门店分配
         ...store_ids.map(store_id => 
           db.prepare(`
-            INSERT INTO user_stores (user_id, store_id, created_at) 
+            INSERT INTO user_store_rel (user_id, store_id, created_at) 
             VALUES (?, ?, datetime('now', '+8 hours'))
           `).bind(user_id, store_id)
         ),
@@ -40,12 +40,12 @@ export async function onRequest(context) {
           SELECT 
             u.user_id, 
             u.user_name, 
-            u.role_id,
+            u.role_type,
             u.created_at,
             GROUP_CONCAT(s.store_id) as store_ids,
             GROUP_CONCAT(s.store_name) as store_names
           FROM users u
-          LEFT JOIN user_stores us ON u.user_id = us.user_id
+          LEFT JOIN user_store_rel us ON u.user_id = us.user_id
           LEFT JOIN stores s ON us.store_id = s.store_id
           WHERE u.user_id = ?
           GROUP BY u.user_id

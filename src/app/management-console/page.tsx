@@ -280,13 +280,13 @@ export default function AdminPage() {
                     </TableCell>
                     <TableCell>
                       <Select 
-                        value={user.role_id?.toString() || ''}
+                        value={user.role_type?.toString() || ''}
                         onValueChange={(value) => handleRoleChange(user.user_id, parseInt(value))}
                       >
                         <SelectTrigger>
                           <SelectValue>
-                            {user.role_id === 1 ? '店长' : 
-                             user.role_id === 2 ? '销售' : 
+                            {user.role_type === 1 ? '店长' : 
+                             user.role_type === 2 ? '销售' : 
                              '未分配'}
                           </SelectValue>
                         </SelectTrigger>

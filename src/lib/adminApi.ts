@@ -12,7 +12,7 @@ export interface User {
   user_id: string;
   user_name: string;
   created_at: string;
-  role_id: number;
+  role_type: number;
   stores?: Array<{
     store_id: string;
     store_name: string;
@@ -65,7 +65,7 @@ const userSchema = z.object({
 
 const roleSchema = z.object({
   user_id: z.string().min(1, '请选择员工'),
-  role_id: z.number().int().min(1).max(2, '无效的角色ID')
+  role_type: z.number().int().min(1).max(2, '无效的角色ID')
 });
 
 // 管理员登录
@@ -270,14 +270,14 @@ export async function assignRole(
   roleId: number
 ): Promise<User> {
   try {
-    roleSchema.parse({ user_id: userId, role_id: roleId });
+    roleSchema.parse({ user_id: userId, role_type: roleId });
 
     const response = await fetch('/api/v1/admin/roles', {
       method: 'POST',
       headers: getBaseHeaders(),
       body: JSON.stringify({
         user_id: userId,
-        role_id: roleId,
+        role_type: roleId,
       }),
     });
 

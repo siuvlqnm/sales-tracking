@@ -34,7 +34,7 @@ export async function onRequest(context) {
         JOIN users u ON sr.user_id = u.user_id
         JOIN stores s ON sr.store_id = s.store_id
         WHERE sr.store_id IN (
-          SELECT store_id FROM user_stores WHERE user_id = ?
+          SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
       `;
 

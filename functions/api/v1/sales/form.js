@@ -29,7 +29,7 @@ export async function onRequest(context) {
 
       // 验证用户权限
       const userStore = await db.prepare(`
-        SELECT 1 FROM user_stores 
+        SELECT 1 FROM user_store_rel 
         WHERE user_id = ? AND store_id = ?
       `).bind(user.id, store_id).first();
 

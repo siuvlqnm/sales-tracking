@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS "sales_records" (
-	"id" INTEGER NOT NULL UNIQUE AUTOINCREMENT,
+	"id" INTEGER NOT NULL UNIQUE,
 	"order_no" TEXT NOT NULL UNIQUE,
 	-- 员工 ID
 	"user_id" TEXT NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS "user_store_rel" (
 );
 
 CREATE TABLE IF NOT EXISTS "admins" (
-	"id" INTEGER NOT NULL UNIQUE AUTOINCREMENT,
+	"id" INTEGER NOT NULL UNIQUE,
 	-- 管理员名称
 	"admin_name" TEXT NOT NULL UNIQUE,
 	-- 密码
@@ -75,10 +75,11 @@ CREATE TABLE IF NOT EXISTS "admins" (
 );
 
 CREATE TABLE IF NOT EXISTS "products" (
-	"id" INTEGER NOT NULL UNIQUE AUTOINCREMENT,
-	"product_name" TEXT NOT NULL UNIQUE,
+	"product_id" TEXT NOT NULL UNIQUE,
+	"product_name" TEXT NOT NULL,
 	-- 是否启用：1.启用、2.禁用
 	"product_status" INTEGER NOT NULL DEFAULT 1,
+	"updated_at" DATETIME,
 	"created_at" DATETIME NOT NULL,
-	PRIMARY KEY("id")
+	PRIMARY KEY("product_id")
 );
