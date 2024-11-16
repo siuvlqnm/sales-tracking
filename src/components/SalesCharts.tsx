@@ -26,19 +26,21 @@ export default function SalesCharts() {
     
     try {
       const [year, month] = timeRange.split('-').map(Number);
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0);
       
-      const formatDate = (date: Date) => {
-        const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
-        const cst = new Date(utc + (8 * 3600000));
-        return format(cst, 'yyyy-MM-dd');
-      };
+      // 设置为当月的开始时间 (00:00:00)
+      const startDate = new Date(year, month - 1, 1);
+      startDate.setHours(0, 0, 0, 0);
+      const startTs = startDate.getTime();
+      
+      // 设置为当月的结束时间 (23:59:59.999)
+      const endDate = new Date(year, month, 0);
+      endDate.setHours(23, 59, 59, 999);
+      const endTs = endDate.getTime();
 
       const data = await getChartData({
-        startDate: formatDate(startDate),
-        endDate: formatDate(endDate),
-        storeId: selectedStoreId === 'all' ? undefined : selectedStoreId
+        startTs,
+        endTs,
+        storeID: selectedStoreId === 'all' ? undefined : selectedStoreId
       });
       setSalesData(data);
     } catch (err) {
@@ -173,11 +175,19 @@ export default function SalesCharts() {
                 {salesData.productPerformance.map((product, index) => (
                   <li key={index}>
                     <div className="flex justify-between items-center mb-1">
-                      <span>¥{product.amount.toLocaleString('zh-CN', { 
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-sm text-gray-500">
+                        {product.count} 笔
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm text-gray-500 mb-1">
+                      <span>总金额：¥{product.total.toLocaleString('zh-CN', {
                         minimumFractionDigits: 2,
-                        maximumFractionDigits: 2 
+                        maximumFractionDigits: 2
                       })}</span>
-                      <span>{product.count} 笔</span>
+                      <span>
+                        {((product.count / salesData.productPerformance.reduce((sum, p) => sum + p.count, 0)) * 100).toFixed(1)}%
+                      </span>
                     </div>
                     <Progress 
                       value={(product.count / maxProductCount) * 100} 

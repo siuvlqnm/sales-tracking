@@ -1,4 +1,5 @@
 import { getAuthHeader, isTokenExpired, clearAuth } from './authUtils';
+import { z } from 'zod';
 
 // API 请求基础配置
 const baseConfig = {
@@ -105,47 +106,31 @@ interface SalesRecordQuery {
   storeID?: string;
 }
 
-export type SalesRecord = {
-  id: string;
-  userName: string;
-  storeName: string;
-  actualAmount: number;
-  submitTs: number;
-  customerName: string;
-  phone?: string;
-  productName: string;
-  notes?: string;
-  orderNo: string;
-}
+const SalesRecordSchema = z.object({
+  id: z.union([z.string(), z.number()]).transform(val => val.toString()),
+  user_name: z.string(),
+  store_name: z.string(),
+  actual_amount: z.number(),
+  submit_ts: z.number(),
+  customer_name: z.string(),
+  phone: z.string().nullable().optional(),
+  product_name: z.string(),
+  notes: z.string().nullable().optional(),
+  order_no: z.string(),
+}).transform(data => ({
+  id: data.id,
+  userName: data.user_name,
+  storeName: data.store_name,
+  actualAmount: data.actual_amount,
+  submitTs: data.submit_ts,
+  customerName: data.customer_name,
+  phone: data.phone ?? undefined,
+  productName: data.product_name,
+  notes: data.notes ?? undefined,
+  orderNo: data.order_no,
+}));
 
-interface ApiSalesRecord {
-  id: string;
-  user_name: string;
-  store_name: string;
-  actual_amount: number;
-  submit_ts: number;
-  customer_name: string;
-  phone?: string;
-  product_name: string;
-  notes?: string;
-  order_no: string;
-}
-
-// 添加数据转换函数
-function convertApiSalesRecord(ApiSalesRecord: ApiSalesRecord): SalesRecord {
-  return {
-    id: ApiSalesRecord.id,
-    userName: ApiSalesRecord.user_name,
-    storeName: ApiSalesRecord.store_name,
-    actualAmount: ApiSalesRecord.actual_amount,
-    submitTs: ApiSalesRecord.submit_ts,
-    customerName: ApiSalesRecord.customer_name,
-    phone: ApiSalesRecord.phone,
-    productName: ApiSalesRecord.product_name,
-    notes: ApiSalesRecord.notes,
-    orderNo: ApiSalesRecord.order_no,
-  };
-}
+export type SalesRecord = z.infer<typeof SalesRecordSchema>;
 
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   const queryParams = new URLSearchParams();
@@ -172,8 +157,7 @@ export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<
   }
 
   const response = await fetchWithAuth(`/api/v1/sales/query?${queryParams.toString()}`);
-  const apiRecords = await response.json();
-  return apiRecords.map(convertApiSalesRecord);
+  return SalesRecordSchema.array().parse(await response.json());
 }
 
 // 添加删除销售记录的函数
@@ -192,32 +176,59 @@ export async function deleteSalesRecord(recordId: string, reason: string): Promi
   }
 }
 
-// Add this type definition before the getChartData function
-export type ChartData = {
-  dailySales: Array<{ date: string; total: number }>;
-  topSalespeople?: Array<{ name: string; total: number }>;
-  productPerformance: Array<{ amount: number; count: number }>;
-};
+// 图表数据相关的 Schema 定义
+const DailySaleSchema = z.object({
+  date: z.string(),
+  total: z.number()
+});
 
-// 获取图表数据
+const SalespersonSchema = z.object({
+  name: z.string(),
+  total: z.number()
+});
+
+const ProductPerformanceSchema = z.object({
+  name: z.string(),
+  count: z.number(),
+  total: z.number()
+});
+
+const ChartDataSchema = z.object({
+  dailySales: z.array(DailySaleSchema),
+  topSalespeople: z.array(SalespersonSchema).optional(),
+  productPerformance: z.array(ProductPerformanceSchema)
+});
+
+// 导出类型定义
+export type ChartData = z.infer<typeof ChartDataSchema>;
+
+// 获取图表数据的函数
 export async function getChartData(params: {
-  startDate: string;
-  endDate: string;
-  storeId?: string;
+  startTs: number;
+  endTs: number;
+  storeID?: string;
 }): Promise<ChartData> {
   try {
     const queryParams = new URLSearchParams({
-      start_date: params.startDate,
-      end_date: params.endDate,
+      startTs: params.startTs.toString(),
+      endTs: params.endTs.toString(),
     });
     
-    if (params.storeId) queryParams.set('store_id', params.storeId);
+    if (params.storeID) {
+      queryParams.set('storeID', params.storeID);
+    }
 
     const response = await fetchWithAuth(`/api/v1/sales/charts?${queryParams.toString()}`);
-    return response.json();
+    const data = await response.json();
+    
+    return ChartDataSchema.parse(data);
   } catch (error) {
-    console.error('获取图表数据过程中发生错误：', error);
-    throw new Error('获取图表数据失败，请重试。');
+    if (error instanceof z.ZodError) {
+      console.error('数据格式验证失败：', error.errors);
+      throw new Error('数据格式错误，请联系管理员');
+    }
+    console.error('获取图表数据失败：', error);
+    throw new Error('获取图表数据失败，请重试');
   }
 }
 
