@@ -140,14 +140,26 @@ function RecentSalesCard({ recentSales }: { recentSales: DashboardData['recentSa
         ) : (
           <ul className="space-y-3">
             {recentSales.map((sale) => (
-              <li key={sale.id} className="flex justify-between items-center">
-                <span className="text-gray-600">{sale.date}</span>
-                <span className="font-medium">
-                  ¥{sale.amount.toLocaleString('zh-CN', { 
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2 
-                  })}
-                </span>
+              <li key={sale.id} className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-500">
+                    {new Date(sale.date).toLocaleString('zh-CN', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                  <span className="font-medium">
+                    ¥{sale.amount.toLocaleString('zh-CN', { 
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2 
+                    })}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  {sale.customer_name} · {sale.product_name}
+                </div>
               </li>
             ))}
           </ul>

@@ -46,6 +46,7 @@ export async function onRequest(context) {
         AND store_id IN (
           SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
+        AND deleted_at IS NULL
         ${storeID ? 'AND store_id = ?' : ''}
         ${user.role !== 'manager' ? 'AND user_id = ?' : ''}
       `;
@@ -66,16 +67,21 @@ export async function onRequest(context) {
       const recentSalesQuery = `
         SELECT 
           sr.id,
+          sr.order_no,
           u.user_name,
           s.store_name,
           sr.actual_amount,
-          sr.submit_ts
+          sr.submit_ts,
+          sr.customer_name,
+          p.product_name
         FROM sales_records sr
         JOIN users u ON sr.user_id = u.user_id
         JOIN stores s ON sr.store_id = s.store_id
+        JOIN products p ON sr.product_id = p.product_id
         WHERE sr.store_id IN (
           SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
+        AND sr.deleted_at IS NULL
         ${storeID ? 'AND sr.store_id = ?' : ''}
         ${user.role !== 'manager' ? 'AND sr.user_id = ?' : ''}
         ORDER BY sr.submit_ts DESC
@@ -105,6 +111,7 @@ export async function onRequest(context) {
           AND sr.store_id IN (
             SELECT store_id FROM user_store_rel WHERE user_id = ?
           )
+          AND sr.deleted_at IS NULL
           ${storeID ? 'AND sr.store_id = ?' : ''}
           GROUP BY u.user_name
           ORDER BY total_sales DESC
@@ -130,10 +137,13 @@ export async function onRequest(context) {
         },
         recentSales: recentSales.results.map(record => ({
           id: record.id,
+          order_no: record.order_no,
           user_name: record.user_name,
           store_name: record.store_name,
           amount: Number(record.actual_amount),
-          date: record.submit_ts
+          date: record.submit_ts,
+          customer_name: record.customer_name,
+          product_name: record.product_name
         })),
         topSalespeople: topSalespeople.results?.map(person => ({
           name: person.name,

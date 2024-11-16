@@ -240,8 +240,10 @@ export type DashboardData = {
   };
   recentSales: Array<{
     id: string;
-    date: string;
+    product_name: string;
+    customer_name: string;
     amount: number;
+    date: number;
   }>;
   topSalespeople: Array<{
     name: string;
