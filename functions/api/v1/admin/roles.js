@@ -14,10 +14,10 @@ export async function onRequest(context) {
 
   try {
     if (request.method === 'POST') {
-      const { user_id, role_id } = await request.json();
+      const { user_id, role_type } = await request.json();
 
       // 验证输入
-      if (!user_id || !role_id) {
+      if (!user_id || !role_type) {
         return new Response(JSON.stringify({ message: '用户ID和角色ID不能为空' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -39,22 +39,22 @@ export async function onRequest(context) {
       // 更新用户角色
       await db.prepare(`
         UPDATE users 
-        SET role_id = ?, 
+        SET role_type = ?, 
             updated_at = datetime('now', '+8 hours')
         WHERE user_id = ?
-      `).bind(role_id, user_id).run();
+      `).bind(role_type, user_id).run();
 
       // 获取更新后的用户信息
       const updatedUser = await db.prepare(`
         SELECT 
           u.user_id, 
           u.user_name, 
-          u.role_id,
+          u.role_type,
           u.created_at,
           GROUP_CONCAT(s.store_id) as store_ids,
           GROUP_CONCAT(s.store_name) as store_names
         FROM users u
-        LEFT JOIN user_stores us ON u.user_id = us.user_id
+        LEFT JOIN user_store_rel us ON u.user_id = us.user_id
         LEFT JOIN stores s ON us.store_id = s.store_id
         WHERE u.user_id = ?
         GROUP BY u.user_id

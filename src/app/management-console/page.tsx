@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Toaster } from '@/components/ui/toaster';
-import { addStore, addUser, assignRole, getStores, getUsers, assignStore, verifyAdminToken } from '@/lib/adminApi';
+import { addStore, addUser, assignRole, getStores, getUsers, assignStore } from '@/lib/adminApi';
 import type { Store, User } from '@/lib/adminApi';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
@@ -19,60 +18,30 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export default function AdminPage() {
-  const router = useRouter();
   const [stores, setStores] = useState<Store[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [newStoreName, setNewStoreName] = useState('');
   const [newUserName, setNewUserName] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchQueries, setSearchQueries] = useState<{ [key: string]: string }>({});
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
 
-  // 检查管理员认证
+  // 移除验证相关的代码，只保留数据加载
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchData = async () => {
       try {
-        const isValid = await verifyAdminToken();
-        if (!isValid) {
-          router.push('/management-console/login');
-          return;
-        }
-        setIsLoading(false);
+        const [storesData, usersData] = await Promise.all([
+          getStores(),
+          getUsers()
+        ]);
+        setStores(storesData);
+        setUsers(usersData);
       } catch (error) {
-        console.error('验证失败:', error);
-        router.push('/management-console/login');
+        console.error('加载数据失败:', error);
       }
     };
-
-    checkAuth();
-  }, [router]);
-
-  // 加载数据
-  useEffect(() => {
-    if (!isLoading) {
-      const fetchData = async () => {
-        try {
-          const [storesData, usersData] = await Promise.all([
-            getStores(),
-            getUsers()
-          ]);
-          setStores(storesData);
-          setUsers(usersData);
-        } catch (error) {
-          console.error('加载数据失败:', error);
-          // 如果是认证错误，跳转到登录页
-          if (error instanceof Error && 
-              (error.message.includes('未登录') || 
-               error.message.includes('未授权') || 
-               error.message.includes('无效令牌'))) {
-            router.push('/management-console/login');
-          }
-        }
-      };
-      fetchData();
-    }
-  }, [refreshKey, isLoading, router]);
+    fetchData();
+  }, [refreshKey]);
 
   // 刷新数据
   const refreshData = () => {
@@ -130,19 +99,10 @@ export default function AdminPage() {
     }
   };
 
-  // 如果正在加载，显示加载指示器
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-
   // 渲染主要内容
   return (
     <>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">系统管理</h1>
           <Button onClick={refreshData} variant="outline">
@@ -280,13 +240,13 @@ export default function AdminPage() {
                     </TableCell>
                     <TableCell>
                       <Select 
-                        value={user.role_id?.toString() || ''}
+                        value={user.role_type?.toString() || ''}
                         onValueChange={(value) => handleRoleChange(user.user_id, parseInt(value))}
                       >
                         <SelectTrigger>
                           <SelectValue>
-                            {user.role_id === 1 ? '店长' : 
-                             user.role_id === 2 ? '销售' : 
+                            {user.role_type === 1 ? '店长' : 
+                             user.role_type === 2 ? '销售' : 
                              '未分配'}
                           </SelectValue>
                         </SelectTrigger>

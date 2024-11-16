@@ -19,9 +19,9 @@ export async function onRequest(context) {
         SELECT 
           user_id,
           user_name,
-          role_id
+          role_type
         FROM users 
-        WHERE user_id = ?
+        WHERE employment_status = 1 AND user_id = ?
       `).bind(user_id).first();
 
       if (!userInfo) {
@@ -34,7 +34,7 @@ export async function onRequest(context) {
       const user = {
         id: userInfo.user_id,
         name: userInfo.user_name,
-        role: userInfo.role_id === 1 ? 'manager' : 'salesperson'
+        role: userInfo.role_type === 1 ? 'manager' : 'salesperson'
       }; 
 
       function base64UrlEncode(input) {

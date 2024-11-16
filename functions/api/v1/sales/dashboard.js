@@ -17,14 +17,24 @@ export async function onRequest(context) {
     try {
       const user = await validateToken(context, corsHeaders);
       const url = new URL(request.url);
-      const store_id = url.searchParams.get('store_id');
+      const storeID = url.searchParams.get('storeID');
       
       const db = env.SALES_TRACKING_DB;
       
-      // 获取当月第一天和最后一天
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      // 获取东八区当前时间
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+      
+      // 获取东八区当月第一天
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      firstDay.setHours(0, 0, 0, 0);
+      
+      // 获取东八区当月最后一天
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastDay.setHours(23, 59, 59, 999);
+
+      // Convert to timestamps
+      const firstDayTs = firstDay.getTime();
+      const lastDayTs = lastDay.getTime();
 
       // 1. 获取个人/团队月度业绩
       const performanceQuery = `
@@ -32,19 +42,20 @@ export async function onRequest(context) {
           COUNT(*) as order_count,
           SUM(actual_amount) as total_amount
         FROM sales_records
-        WHERE DATE(submission_time) BETWEEN DATE(?) AND DATE(?)
+        WHERE submit_ts BETWEEN ? AND ?
         AND store_id IN (
-          SELECT store_id FROM user_stores WHERE user_id = ?
+          SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
-        ${store_id ? 'AND store_id = ?' : ''}
+        AND deleted_at IS NULL
+        ${storeID ? 'AND store_id = ?' : ''}
         ${user.role !== 'manager' ? 'AND user_id = ?' : ''}
       `;
       
       const performanceParams = [
-        firstDay, 
-        lastDay,
+        firstDayTs, 
+        lastDayTs,
         user.id,
-        ...(store_id ? [store_id] : []),
+        ...(storeID ? [storeID] : []),
         ...(user.role !== 'manager' ? [user.id] : [])
       ];
       
@@ -56,25 +67,30 @@ export async function onRequest(context) {
       const recentSalesQuery = `
         SELECT 
           sr.id,
+          sr.order_no,
           u.user_name,
           s.store_name,
           sr.actual_amount,
-          sr.submission_time
+          sr.submit_ts,
+          sr.customer_name,
+          p.product_name
         FROM sales_records sr
         JOIN users u ON sr.user_id = u.user_id
         JOIN stores s ON sr.store_id = s.store_id
+        JOIN products p ON sr.product_id = p.product_id
         WHERE sr.store_id IN (
-          SELECT store_id FROM user_stores WHERE user_id = ?
+          SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
-        ${store_id ? 'AND sr.store_id = ?' : ''}
+        AND sr.deleted_at IS NULL
+        ${storeID ? 'AND sr.store_id = ?' : ''}
         ${user.role !== 'manager' ? 'AND sr.user_id = ?' : ''}
-        ORDER BY sr.submission_time DESC
+        ORDER BY sr.submit_ts DESC
         LIMIT 5
       `;
       
       const recentSalesParams = [
         user.id,
-        ...(store_id ? [store_id] : []),
+        ...(storeID ? [storeID] : []),
         ...(user.role !== 'manager' ? [user.id] : [])
       ];
 
@@ -91,21 +107,22 @@ export async function onRequest(context) {
             SUM(sr.actual_amount) as total_sales
           FROM sales_records sr
           JOIN users u ON sr.user_id = u.user_id
-          WHERE DATE(sr.submission_time) BETWEEN DATE(?) AND DATE(?)
+          WHERE submit_ts BETWEEN ? AND ?
           AND sr.store_id IN (
-            SELECT store_id FROM user_stores WHERE user_id = ?
+            SELECT store_id FROM user_store_rel WHERE user_id = ?
           )
-          ${store_id ? 'AND sr.store_id = ?' : ''}
+          AND sr.deleted_at IS NULL
+          ${storeID ? 'AND sr.store_id = ?' : ''}
           GROUP BY u.user_name
           ORDER BY total_sales DESC
           LIMIT 5
         `;
         
         const topSalesParams = [
-          firstDay,
-          lastDay,
+          firstDayTs,
+          lastDayTs,
           user.id,
-          ...(store_id ? [store_id] : [])
+          ...(storeID ? [storeID] : [])
         ];
 
         topSalespeople = await db.prepare(topSalesQuery)
@@ -120,10 +137,13 @@ export async function onRequest(context) {
         },
         recentSales: recentSales.results.map(record => ({
           id: record.id,
+          order_no: record.order_no,
           user_name: record.user_name,
           store_name: record.store_name,
           amount: Number(record.actual_amount),
-          date: record.submission_time
+          date: record.submit_ts,
+          customer_name: record.customer_name,
+          product_name: record.product_name
         })),
         topSalespeople: topSalespeople.results?.map(person => ({
           name: person.name,

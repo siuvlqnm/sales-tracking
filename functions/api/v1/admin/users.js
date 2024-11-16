@@ -19,13 +19,13 @@ export async function onRequest(context) {
           u.user_id, 
           u.user_name, 
           u.created_at,
-          u.role_id,
+          u.role_type,
           GROUP_CONCAT(s.store_id) as store_ids,
           GROUP_CONCAT(s.store_name) as store_names
         FROM users u
-        LEFT JOIN user_stores us ON u.user_id = us.user_id
+        LEFT JOIN user_store_rel us ON u.user_id = us.user_id
         LEFT JOIN stores s ON us.store_id = s.store_id
-        GROUP BY u.user_id, u.user_name, u.created_at, u.role_id
+        GROUP BY u.user_id, u.user_name, u.created_at, u.role_type
         ORDER BY u.created_at DESC
       `).all();
 
@@ -52,7 +52,7 @@ export async function onRequest(context) {
         user_id: user.user_id || '',
         user_name: user.user_name || '',
         created_at: user.created_at || '',
-        role_id: user.role_id || null,
+        role_type: user.role_type || null,
         stores: Array.isArray(user.stores) ? user.stores : []
       }));
 

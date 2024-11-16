@@ -1,0 +1,1 @@
+INSERT INTO admins (admin_name, pwd_hash, token, token_expires, created_at) VALUES ('admin', 'bc1e9f8a8065a0428cf93703935165011c349a526c080f51d9f731233b9a0d61', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6ImFkbWluIiwiZXhwIjoxNzMxMzk1ODMxfQ==.R3vryMRREZfXNdNFVKDu8SAsots2HKEFTr/JoksK29Y', '2024-11-13 12:00:00', '2024-11-13 12:00:00');

@@ -1,12 +1,5 @@
 import { getAuthHeader, isTokenExpired, clearAuth } from './authUtils';
-
-export type SalesRecord = {
-  id: string;
-  user_name: string;
-  store_name: string;
-  actual_amount: number;
-  submission_time: string;
-}
+import { z } from 'zod';
 
 // API 请求基础配置
 const baseConfig = {
@@ -68,50 +61,33 @@ export async function authenticateUser(trackingId: string): Promise<{token: stri
 }
 
 // 添加一个获取东八区时间戳的辅助函数
-function getChinaTimestamp() {
-  // 获取当前时间
-  const now = new Date();
-  // 直接使用 toLocaleString 方法，指定时区为 'Asia/Shanghai'
-  return now.toLocaleString('zh-CN', { 
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  }).replace(/\//g, '-');
+function getChinaTimestamp(): number {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })).getTime();
 }
 
-// 提交销售记录
-// export async function submitSalesRecords(
-//   storeId: string,
-//   amounts: number[]
-// ): Promise<void> {
-//   const response = await fetchWithAuth('/api/v1/sales/form', {
-//     method: 'POST',
-//     body: JSON.stringify({
-//       store_id: storeId,
-//       amounts: amounts,
-//       timestamp: new Date().toISOString()
-//     }),
-//   });
-
-//   if (!response.ok) {
-//     throw new Error('提交失败');
-//   }
-// }
+export type formSalesRecord = {
+  amount: string;
+  customerName: string;
+  productID: string;
+}
 
 // 修改提交销售记录的函数
-export async function submitSalesRecords(storeId: string, amounts: number[]) {
+export async function submitSalesRecords(storeId: string, records: formSalesRecord[]) {
   const timestamp = getChinaTimestamp();
+  
+  // 过滤出有效记录
+  const validRecords = records.filter(record => 
+    record.amount && record.customerName && record.productID
+  ).map(record => ({
+    ...record,
+    amount: parseFloat(record.amount), // 确保金额是数字
+  }));
   
   const response = await fetchWithAuth('/api/v1/sales/form', {
     method: 'POST',
     body: JSON.stringify({
       store_id: storeId,
-      amounts: amounts,
+      records: validRecords,
       timestamp
     })
   });
@@ -127,56 +103,132 @@ export async function submitSalesRecords(storeId: string, amounts: number[]) {
 // 查询销售记录
 interface SalesRecordQuery {
   date?: Date;
-  storeId?: string;
+  storeID?: string;
 }
+
+const SalesRecordSchema = z.object({
+  id: z.union([z.string(), z.number()]).transform(val => val.toString()),
+  user_name: z.string(),
+  store_name: z.string(),
+  actual_amount: z.number(),
+  submit_ts: z.number(),
+  customer_name: z.string(),
+  phone: z.string().nullable().optional(),
+  product_name: z.string(),
+  notes: z.string().nullable().optional(),
+  order_no: z.string(),
+}).transform(data => ({
+  id: data.id,
+  userName: data.user_name,
+  storeName: data.store_name,
+  actualAmount: data.actual_amount,
+  submitTs: data.submit_ts,
+  customerName: data.customer_name,
+  phone: data.phone ?? undefined,
+  productName: data.product_name,
+  notes: data.notes ?? undefined,
+  orderNo: data.order_no,
+}));
+
+export type SalesRecord = z.infer<typeof SalesRecordSchema>;
 
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   const queryParams = new URLSearchParams();
   
   if (params.date) {
-    // 调整为东八区时间
+    // 转换为东八区时间戳
     const date = new Date(params.date);
-    date.setHours(date.getHours() + 8);
-    // 转换为 YYYY-MM-DD 格式
-    const formatted_date = date.toISOString().split('T')[0];
-    queryParams.set('start_date', formatted_date);
-    queryParams.set('end_date', formatted_date);
+    // 设置为当天的开始时间 (00:00:00)
+    const startTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    startTime.setHours(startTime.getHours() + 8);
+    const startTs = startTime.getTime();
+    
+    // 设置为当天的结束时间 (23:59:59)
+    const endTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+    endTime.setHours(endTime.getHours() + 8);
+    const endTs = endTime.getTime();
+    
+    queryParams.set('startTs', startTs.toString());
+    queryParams.set('endTs', endTs.toString());
   }
   
-  if (params.storeId && params.storeId !== 'all') {
-    queryParams.set('store_id', params.storeId);
+  if (params.storeID && params.storeID !== 'all') {
+    queryParams.set('storeID', params.storeID);
   }
 
   const response = await fetchWithAuth(`/api/v1/sales/query?${queryParams.toString()}`);
-  return response.json();
+  return SalesRecordSchema.array().parse(await response.json());
 }
 
-// Add this type definition before the getChartData function
-export type ChartData = {
-  dailySales: Array<{ date: string; total: number }>;
-  topSalespeople?: Array<{ name: string; total: number }>;
-  productPerformance: Array<{ amount: number; count: number }>;
-};
+// 添加删除销售记录的函数
+export async function deleteSalesRecord(recordId: string, reason: string): Promise<void> {
+  const response = await fetchWithAuth('/api/v1/sales/query', {
+    method: 'DELETE',
+    body: JSON.stringify({
+      recordID: recordId,
+      reason: reason
+    })
+  });
 
-// 获取图表数据
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || '删除失败');
+  }
+}
+
+// 图表数据相关的 Schema 定义
+const DailySaleSchema = z.object({
+  date: z.string(),
+  total: z.number()
+});
+
+const SalespersonSchema = z.object({
+  name: z.string(),
+  total: z.number()
+});
+
+const ProductPerformanceSchema = z.object({
+  name: z.string(),
+  count: z.number(),
+  total: z.number()
+});
+
+const ChartDataSchema = z.object({
+  dailySales: z.array(DailySaleSchema),
+  topSalespeople: z.array(SalespersonSchema).optional(),
+  productPerformance: z.array(ProductPerformanceSchema)
+});
+
+// 导出类型定义
+export type ChartData = z.infer<typeof ChartDataSchema>;
+
+// 获取图表数据的函数
 export async function getChartData(params: {
-  startDate: string;
-  endDate: string;
-  storeId?: string;
+  startTs: number;
+  endTs: number;
+  storeID?: string;
 }): Promise<ChartData> {
   try {
     const queryParams = new URLSearchParams({
-      start_date: params.startDate,
-      end_date: params.endDate,
+      startTs: params.startTs.toString(),
+      endTs: params.endTs.toString(),
     });
     
-    if (params.storeId) queryParams.set('store_id', params.storeId);
+    if (params.storeID) {
+      queryParams.set('storeID', params.storeID);
+    }
 
     const response = await fetchWithAuth(`/api/v1/sales/charts?${queryParams.toString()}`);
-    return response.json();
+    const data = await response.json();
+    
+    return ChartDataSchema.parse(data);
   } catch (error) {
-    console.error('获取图表数据过程中发生错误：', error);
-    throw new Error('获取图表数据失败，请重试。');
+    if (error instanceof z.ZodError) {
+      console.error('数据格式验证失败：', error.errors);
+      throw new Error('数据格式错误，请联系管理员');
+    }
+    console.error('获取图表数据失败：', error);
+    throw new Error('获取图表数据失败，请重试');
   }
 }
 
@@ -188,8 +240,10 @@ export type DashboardData = {
   };
   recentSales: Array<{
     id: string;
-    date: string;
+    product_name: string;
+    customer_name: string;
     amount: number;
+    date: number;
   }>;
   topSalespeople: Array<{
     name: string;
@@ -204,7 +258,7 @@ export async function getDashboardData(params: {
   try {
     const queryParams = new URLSearchParams();
     if (params?.storeId && params.storeId !== 'all') {
-      queryParams.set('store_id', params.storeId);
+      queryParams.set('storeID', params.storeId);
     }
 
     const response = await fetchWithAuth(
@@ -215,5 +269,26 @@ export async function getDashboardData(params: {
   } catch (error) {
     console.error('获取仪表盘数据过程中发生错误：', error);
     throw new Error('获取仪表盘数据失败，请重试。');
+  }
+}
+
+export type Product = {
+  productID: string;
+  productName: string;
+}
+
+// 获取商品列表
+export async function getProducts(): Promise<Product[]> {
+  try {
+    const response = await fetchWithAuth('/api/v1/sales/products');
+    if (!response.ok) {
+      console.error('Failed to fetch products');
+      return [];
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
   }
 }

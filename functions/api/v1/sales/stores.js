@@ -24,7 +24,7 @@ export async function onRequest(context) {
         if (!stores) {
             const query = `
                 SELECT us.store_id, s.store_name
-                FROM user_stores us
+                FROM user_store_rel us
                 JOIN stores s ON us.store_id = s.store_id
                 WHERE us.user_id = ?
             `;
