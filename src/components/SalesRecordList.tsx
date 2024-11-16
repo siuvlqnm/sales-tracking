@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Loader2, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Trash2, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -38,12 +38,22 @@ export default function SalesRecordList() {
   });
 
   const fetchRecords = useCallback(async () => {
-    if (!user) return;
+    if (!user || !date) return;
     
     try {
       setLoading(true);
+      // 设置当天的开始和结束时间戳
+      const startTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      startTime.setHours(startTime.getHours() + 8); // 调整为东八区
+      const startTs = startTime.getTime();
+      
+      const endTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+      endTime.setHours(endTime.getHours() + 8); // 调整为东八区
+      const endTs = endTime.getTime();
+
       const data = await querySalesRecords({
-        date: date || undefined,
+        startTs,
+        endTs,
         storeID: selectedStoreId === 'all' ? undefined : selectedStoreId
       });
       setRecords(data);
@@ -78,6 +88,64 @@ export default function SalesRecordList() {
       console.error('Error deleting record:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const exportMonthlyData = async () => {
+    if (!date) return;
+    
+    try {
+      // 获取当月第一天和最后一天的时间戳
+      const startTime = new Date(date.getFullYear(), date.getMonth(), 1);
+      startTime.setHours(startTime.getHours() + 8); // 调整为东八区
+      const startTs = startTime.getTime();
+      
+      const endTime = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+      endTime.setHours(endTime.getHours() + 8); // 调整为东八区
+      const endTs = endTime.getTime();
+      
+      // 获取当月所有数据
+      const monthlyData = await querySalesRecords({
+        startTs,
+        endTs,
+        storeID: selectedStoreId === 'all' ? undefined : selectedStoreId
+      });
+
+      // 准备CSV数据
+      const headers = ['订单号', '客户姓名', '手机号', '商品', '老师', '门店', '金额', '提交时间', '备注'];
+      
+      const rows = monthlyData.map(record => [
+        record.orderNo,
+        record.customerName,
+        record.phone || '',
+        record.productName,
+        record.userName,
+        record.storeName,
+        record.actualAmount.toString(),
+        format(new Date(record.submitTs), 'yyyy-MM-dd HH:mm:ss'),
+        record.notes || ''
+      ]);
+
+      // 组合所有行
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => 
+          typeof cell === 'string' && (cell.includes(',') || cell.includes('\n') || cell.includes('"'))
+            ? `"${cell.replace(/"/g, '""')}"` 
+            : cell
+        ).join(','))
+      ].join('\n');
+
+      // 创建并下载文件
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `成交记录-${format(date, 'yyyy-MM')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error exporting data:', error);
     }
   };
 
@@ -118,6 +186,19 @@ export default function SalesRecordList() {
           className="w-full"
         />
       </div>
+      
+      {user?.role !== 'salesperson' && (
+        <div className="flex justify-between items-center mb-4">
+          <Button
+            variant="outline"
+            onClick={exportMonthlyData}
+            disabled={!date || selectedStoreId === 'all'}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {selectedStoreId === 'all' ? '请选择门店' : '导出当月数据'}
+          </Button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-8">

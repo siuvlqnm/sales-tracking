@@ -102,7 +102,8 @@ export async function submitSalesRecords(storeId: string, records: formSalesReco
 
 // 查询销售记录
 interface SalesRecordQuery {
-  date?: Date;
+  startTs?: number;
+  endTs?: number;
   storeID?: string;
 }
 
@@ -135,23 +136,12 @@ export type SalesRecord = z.infer<typeof SalesRecordSchema>;
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   const queryParams = new URLSearchParams();
   
-  if (params.date) {
-    // 转换为东八区时间戳
-    const date = new Date(params.date);
-    // 设置为当天的开始时间 (00:00:00)
-    const startTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    startTime.setHours(startTime.getHours() + 8);
-    const startTs = startTime.getTime();
-    
-    // 设置为当天的结束时间 (23:59:59)
-    const endTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
-    endTime.setHours(endTime.getHours() + 8);
-    const endTs = endTime.getTime();
-    
-    queryParams.set('startTs', startTs.toString());
-    queryParams.set('endTs', endTs.toString());
+  if (params.startTs) {
+    queryParams.set('startTs', params.startTs.toString());
   }
-  
+  if (params.endTs) {
+    queryParams.set('endTs', params.endTs.toString());
+  }
   if (params.storeID && params.storeID !== 'all') {
     queryParams.set('storeID', params.storeID);
   }

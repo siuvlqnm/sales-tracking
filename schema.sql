@@ -83,3 +83,37 @@ CREATE TABLE IF NOT EXISTS "products" (
 	"created_at" DATETIME NOT NULL,
 	PRIMARY KEY("product_id")
 );
+
+-- 1. 为 sales_records 表添加索引以优化查询性能
+CREATE INDEX idx_sales_submit_ts ON sales_records(submit_ts);
+CREATE INDEX idx_sales_store_user ON sales_records(store_id, user_id);
+CREATE INDEX idx_sales_deleted_at ON sales_records(deleted_at);
+
+-- 2. 为 user_store_rel 表添加外键约束和索引
+ALTER TABLE user_store_rel
+ADD CONSTRAINT fk_user_store_user
+FOREIGN KEY (user_id) REFERENCES users(user_id);
+
+ALTER TABLE user_store_rel
+ADD CONSTRAINT fk_user_store_store
+FOREIGN KEY (store_id) REFERENCES stores(store_id);
+
+CREATE INDEX idx_user_store_store_id ON user_store_rel(store_id);
+
+-- 3. 为 sales_records 表添加外键约束
+ALTER TABLE sales_records
+ADD CONSTRAINT fk_sales_user
+FOREIGN KEY (user_id) REFERENCES users(user_id);
+
+ALTER TABLE sales_records
+ADD CONSTRAINT fk_sales_store
+FOREIGN KEY (store_id) REFERENCES stores(store_id);
+
+ALTER TABLE sales_records
+ADD CONSTRAINT fk_sales_product
+FOREIGN KEY (product_id) REFERENCES products(product_id);
+
+-- 4. 为 sales_records 表的 deleted_by 添加外键约束
+ALTER TABLE sales_records
+ADD CONSTRAINT fk_sales_deleted_by
+FOREIGN KEY (deleted_by) REFERENCES users(user_id);
