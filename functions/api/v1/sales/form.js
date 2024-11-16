@@ -16,9 +16,9 @@ export async function onRequest(context) {
   if (request.method === 'POST') {
     try {
       const user = await validateToken(context, corsHeaders);
-      const { store_id, amounts, timestamp } = await request.json();
+      const { store_id, records, timestamp } = await request.json();
 
-      if (!Array.isArray(amounts) || amounts.length === 0) {
+      if (!Array.isArray(records) || records.length === 0) {
         return new Response(JSON.stringify({ message: 'Invalid input' }), { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -41,23 +41,33 @@ export async function onRequest(context) {
       }
 
       // 修改数据库表结构的 SQL：
-      /*
-      ALTER TABLE sales_records ADD COLUMN customer_name TEXT;
-      ALTER TABLE sales_records ADD COLUMN phone_number TEXT;
-      ALTER TABLE sales_records ADD COLUMN card_type TEXT;
-      ALTER TABLE sales_records ADD COLUMN notes TEXT;
-      */
+      // ALTER TABLE sales_records ADD COLUMN order_no TEXT NOT NULL;
+      // ALTER TABLE sales_records ADD COLUMN submit_ts INTEGER NOT NULL;
+      // ALTER TABLE sales_records ADD COLUMN customer_name TEXT NOT NULL;
+      // ALTER TABLE sales_records ADD COLUMN phone TEXT;
+      // ALTER TABLE sales_records ADD COLUMN product_id TEXT NOT NULL;
+      // ALTER TABLE sales_records ADD COLUMN notes TEXT;
+      // ALTER TABLE sales_records ADD COLUMN delete_reason TEXT;
+      // ALTER TABLE sales_records ADD COLUMN deleted_by TEXT;
+      // ALTER TABLE sales_records ADD COLUMN deleted_at DATETIME;
 
       // 修改插入语句：
       const sql = `
         INSERT INTO sales_records (
-          user_id, store_id, actual_amount, 
-          customer_name, phone_number, card_type, notes,
-          submission_time, created_at
-        ) VALUES ${amounts.map(() => 
-          '(?, ?, ?, ?, ?, ?, ?, ?, datetime("now", "+8 hours"))'
+          user_id, store_id, actual_amount,
+          customer_name, phone, product_id, notes,
+          submit_ts, created_at, order_no
+        ) VALUES ${records.map(() => 
+          '(?, ?, ?, ?, ?, ?, ?, ?, datetime("now", "+8 hours"), ?)'
         ).join(', ')}
       `;
+
+      // 为每条记录生成订单号
+      const generateOrderNo = () => {
+        const timestamp = Date.now().toString();
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        return `SO${timestamp}${random}`;
+      };
 
       // 展平所有记录的值
       const values = records.flatMap(record => [
@@ -65,17 +75,18 @@ export async function onRequest(context) {
         store_id,
         record.amount,
         record.customerName,
-        record.phoneNumber,
-        record.cardType,
-        record.notes,
-        timestamp
+        record.phone || null,
+        record.productID,
+        record.notes || null,
+        timestamp,
+        generateOrderNo()
       ]);
 
       await db.prepare(sql).bind(...values).run();
 
       return new Response(JSON.stringify({ 
         message: 'Sales records submitted successfully',
-        count: amounts.length
+        count: records.length
       }), { 
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

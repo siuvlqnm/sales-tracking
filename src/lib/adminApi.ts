@@ -343,4 +343,165 @@ export async function assignStore(
     });
     throw error;
   }
+}
+
+// 添加类型定义
+export interface Product {
+  productID: string;
+  productName: string;
+  productStatus: number;
+}
+
+interface ApiProduct {
+  product_id: string;
+  product_name: string;
+  product_status: number;
+}
+
+// 添加数据转换函数
+function convertApiProduct(apiProduct: ApiProduct): Product {
+  return {
+    productID: apiProduct.product_id,
+    productName: apiProduct.product_name,
+    productStatus: apiProduct.product_status
+  };
+}
+
+// 添加商品验证规则
+const productSchema = z.object({
+  productName: z.string()
+    .min(2, '商品名称至少2个字符')
+    .max(50, '商品名称不能超过50个字符')
+    .regex(/^[\u4e00-\u9fa5a-zA-Z0-9\s]+$/, '商品名称只能包含中文、英文、数字和空格')
+});
+
+// 添加商品 API
+export async function addProduct(productName: string): Promise<Product> {
+  try {
+    productSchema.parse({ productName: productName });
+
+    const response = await fetch('/api/v1/admin/products', {
+      method: 'POST',
+      headers: getBaseHeaders(),
+      body: JSON.stringify({
+        productID: generateId(),
+        productName: productName.trim(),
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '添加商品失败');
+    }
+
+    const data = await response.json();
+    toast({
+      title: "成功",
+      description: "商品添加成功",
+    });
+    return data;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(error.errors[0].message);
+    }
+    toast({
+      title: "错误",
+      description: error instanceof Error ? error.message : '添加商品失败',
+      variant: "destructive",
+    });
+    throw error;
+  }
+}
+
+// 获取所有商品
+export async function getProducts(): Promise<Product[]> {
+  try {
+    const response = await fetch('/api/v1/admin/products', {
+      headers: getBaseHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '获取商品列表失败');
+    }
+
+    const apiProducts = await response.json();
+    return apiProducts.map(convertApiProduct);
+  } catch (error) {
+    toast({
+      title: "错误",
+      description: error instanceof Error ? error.message : '获取商品列表失败',
+      variant: "destructive",
+    });
+    throw error;
+  }
+}
+
+// 更新商品状态
+export async function updateProductStatus(productId: string, status: number): Promise<Product> {
+  try {
+    const response = await fetch(`/api/v1/admin/products/${productId}/status`, {
+      method: 'PUT',
+      headers: getBaseHeaders(),
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '更新商品状态失败');
+    }
+
+    const apiProduct = await response.json();
+    const product = convertApiProduct(apiProduct);
+    
+    toast({
+      title: "成功",
+      description: "商品状态已更新",
+    });
+    return product;
+  } catch (error) {
+    toast({
+      title: "错误",
+      description: error instanceof Error ? error.message : '更新商品状态失败',
+      variant: "destructive",
+    });
+    throw error;
+  }
+}
+
+// 更新商品信息
+export async function updateProduct(productId: string, productName: string): Promise<Product> {
+  try {
+    productSchema.parse({ product_name: productName });
+
+    const response = await fetch(`/api/v1/admin/products/${productId}`, {
+      method: 'PUT',
+      headers: getBaseHeaders(),
+      body: JSON.stringify({ productName: productName.trim() }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || '更新商品信息失败');
+    }
+
+    const apiProduct = await response.json();
+    const product = convertApiProduct(apiProduct);
+    
+    toast({
+      title: "成功",
+      description: "商品信息已更新",
+    });
+    return product;
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new Error(error.errors[0].message);
+    }
+    toast({
+      title: "错误",
+      description: error instanceof Error ? error.message : '更新商品信息失败',
+      variant: "destructive",
+    });
+    throw error;
+  }
 } 

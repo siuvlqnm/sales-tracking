@@ -14,21 +14,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useAuth } from '@/contexts/AuthContext';
-import { submitSalesRecords } from '@/lib/api';
+import { submitSalesRecords, getProducts } from '@/lib/api';
 import { StoreSelector } from '@/components/ui/store-selector';
 import { getUserStores } from '@/lib/authUtils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SalesRecord {
   amount: string;
   customerName: string;
-  phoneNumber: string;
-  cardType: string;
+  phone: string;
+  productID: string;
   notes: string;
+}
+
+interface Product {
+  productID: string;
+  productName: string;
 }
 
 export default function SalesForm() {
   const { user } = useAuth();
-  const [amounts, setAmounts] = useState(['']);
+  // const [amounts, setAmounts] = useState(['']);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState({ success: false, message: '' });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -38,10 +44,12 @@ export default function SalesForm() {
   const [records, setRecords] = useState<SalesRecord[]>([{
     amount: '',
     customerName: '',
-    phoneNumber: '',
-    cardType: '',
+    phone: '',
+    productID: '',
     notes: ''
   }]);
+  const [Products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   useEffect(() => {
     const initializeStore = async () => {
@@ -58,13 +66,30 @@ export default function SalesForm() {
     initializeStore();
   }, []);
 
+  
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoadingProducts(true);
+      try {
+        const products = await getProducts();
+        setProducts(products);
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+        // 可以添加错误提示
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
   const handleAddRecord = () => {
     if (records.length < 10) {
       setRecords([...records, {
         amount: '',
         customerName: '',
-        phoneNumber: '',
-        cardType: '',
+        phone: '',
+        productID: '',
         notes: ''
       }]);
     }
@@ -87,13 +112,13 @@ export default function SalesForm() {
     const validRecords = records.filter(record => 
       record.amount.trim() !== '' && 
       record.customerName.trim() !== '' && 
-      record.cardType.trim() !== ''
+      record.productID.trim() !== ''
     );
 
     if (validRecords.length === 0) {
       setSubmitStatus({ 
         success: false, 
-        message: '请至少输入一条完整的销售记录（金额、客户姓名和卡项为必填）' 
+        message: '请至少输入一条完整的销售记录（金额、客户姓名和商品为必填）' 
       });
       setShowResultDialog(true);
       return;
@@ -128,12 +153,22 @@ export default function SalesForm() {
 
     setIsSubmitting(true);
     try {
-      await submitSalesRecords(selectedStoreId, validAmounts);
+      const validRecords = records.filter(record => 
+        record.amount && record.customerName && record.productID
+      );
+      await submitSalesRecords(selectedStoreId, validRecords);
       setSubmitStatus({ 
         success: true, 
         message: '提交成功！' 
       });
-      setAmounts(['']);
+      // 重置表单
+      setRecords([{
+        amount: '',
+        customerName: '',
+        phone: '',
+        productID: '',
+        notes: ''
+      }]);
       setShowConfirmDialog(false);
       setShowResultDialog(true);
     } catch (error) {
@@ -188,12 +223,36 @@ export default function SalesForm() {
                     onChange={(e) => handleRecordChange(index, 'customerName', e.target.value)}
                     required
                   />
-                  <Input
-                    type="text"
-                    placeholder="卡项 *"
-                    value={record.cardType}
-                    onChange={(e) => handleRecordChange(index, 'cardType', e.target.value)}
-                  />
+                  <Select
+                    value={record.productID}
+                    onValueChange={(value) => handleRecordChange(index, 'productID', value)}
+                    required
+                    disabled={isLoadingProducts}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingProducts ? "加载中..." : "选择卡项 *"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {isLoadingProducts ? (
+                        <SelectItem value="loading" disabled>
+                          加载中...
+                        </SelectItem>
+                      ) : Products.length > 0 ? (
+                        Products.map((product) => (
+                          <SelectItem 
+                            key={product.productID} 
+                            value={product.productID}
+                          >
+                            {product.productName}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-products" disabled>
+                          暂无可用卡项
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   <Input
                     type="number"
                     placeholder="金额 *"
@@ -207,9 +266,8 @@ export default function SalesForm() {
                   <Input
                     type="tel"
                     placeholder="手机号"
-                    value={record.phoneNumber}
-                    onChange={(e) => handleRecordChange(index, 'phoneNumber', e.target.value)}
-                    required
+                    value={record.phone}
+                    onChange={(e) => handleRecordChange(index, 'phone', e.target.value)}
                   />
                 </div>
                 <Input
@@ -235,7 +293,9 @@ export default function SalesForm() {
             <Button 
               type="submit" 
               className="w-full text-base py-5" 
-              disabled={isSubmitting || amounts.every(a => !a)}
+              disabled={isSubmitting || records.every(record => 
+                !record.amount || !record.customerName || !record.productID
+              )}
             >
               {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
               {isSubmitting ? '提交中...' : '提交'}
@@ -249,15 +309,48 @@ export default function SalesForm() {
           <DialogHeader>
             <DialogTitle>确认提交</DialogTitle>
             <DialogDescription className="pt-4">
-              您确定要提交以下金额吗？
-              <div className="mt-4 space-y-2">
-                {validAmounts.map((amount, index) => (
-                  <div key={index} className="px-4 py-2 bg-muted rounded-md">
-                    ¥{amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
-                  </div>
-                ))}
-                <div className="pt-2 font-medium">
-                  总计: ¥{validAmounts.reduce((sum, amount) => sum + amount, 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+              请确认以下销售记录：
+              <div className="mt-4 space-y-4">
+                {records.filter(record => 
+                  record.amount && record.customerName && record.productID
+                ).map((record, index) => {
+                  const product = Products.find(p => p.productID === record.productID);
+                  return (
+                    <div key={index} className="p-4 bg-muted rounded-md space-y-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">客户姓名：</span>
+                        <span>{record.customerName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">商品：</span>
+                        <span>{product?.productName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">金额：</span>
+                        <span className="text-primary">
+                          ¥{parseFloat(record.amount).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {record.phone && (
+                        <div className="flex justify-between">
+                          <span className="font-medium">电话：</span>
+                          <span>{record.phone}</span>
+                        </div>
+                      )}
+                      {record.notes && (
+                        <div className="flex justify-between">
+                          <span className="font-medium">备注：</span>
+                          <span>{record.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div className="pt-2 font-medium text-lg flex justify-between border-t">
+                  <span>总计金额：</span>
+                  <span className="text-primary">
+                    ¥{validAmounts.reduce((sum, amount) => sum + amount, 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+                  </span>
                 </div>
               </div>
             </DialogDescription>

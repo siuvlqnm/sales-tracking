@@ -17,34 +17,24 @@ export async function onRequest(context) {
     try {
       const user = await validateToken(context, corsHeaders);
       const url = new URL(request.url);
-      const store_id = url.searchParams.get('store_id');
+      const storeID = url.searchParams.get('storeID');
       
       const db = env.SALES_TRACKING_DB;
       
       // 获取东八区当前时间
       const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
-      // 获取东八区当月第一天和最后一天的时间戳
-      const firstDay = new Date(now.toLocaleString('en-US', { 
-        timeZone: 'Asia/Shanghai',
-        year: 'numeric',
-        month: 'numeric',
-        day: '1',
-        hour: '0',
-        minute: '0',
-        second: '0',
-        hour12: false
-      })).getTime();
+      
+      // 获取东八区当月第一天
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      firstDay.setHours(0, 0, 0, 0);
+      
+      // 获取东八区当月最后一天
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastDay.setHours(23, 59, 59, 999);
 
-      const lastDay = new Date(now.toLocaleString('en-US', { 
-        timeZone: 'Asia/Shanghai',
-        year: 'numeric',
-        month: 'numeric',
-        day: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate(),
-        hour: '23',
-        minute: '59',
-        second: '59',
-        hour12: false
-      })).getTime();
+      // Convert to timestamps
+      const firstDayTs = firstDay.getTime();
+      const lastDayTs = lastDay.getTime();
 
       // 1. 获取个人/团队月度业绩
       const performanceQuery = `
@@ -56,15 +46,15 @@ export async function onRequest(context) {
         AND store_id IN (
           SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
-        ${store_id ? 'AND store_id = ?' : ''}
+        ${storeID ? 'AND store_id = ?' : ''}
         ${user.role !== 'manager' ? 'AND user_id = ?' : ''}
       `;
       
       const performanceParams = [
-        firstDay, 
-        lastDay,
+        firstDayTs, 
+        lastDayTs,
         user.id,
-        ...(store_id ? [store_id] : []),
+        ...(storeID ? [storeID] : []),
         ...(user.role !== 'manager' ? [user.id] : [])
       ];
       
@@ -86,7 +76,7 @@ export async function onRequest(context) {
         WHERE sr.store_id IN (
           SELECT store_id FROM user_store_rel WHERE user_id = ?
         )
-        ${store_id ? 'AND sr.store_id = ?' : ''}
+        ${storeID ? 'AND sr.store_id = ?' : ''}
         ${user.role !== 'manager' ? 'AND sr.user_id = ?' : ''}
         ORDER BY sr.submit_ts DESC
         LIMIT 5
@@ -94,7 +84,7 @@ export async function onRequest(context) {
       
       const recentSalesParams = [
         user.id,
-        ...(store_id ? [store_id] : []),
+        ...(storeID ? [storeID] : []),
         ...(user.role !== 'manager' ? [user.id] : [])
       ];
 
@@ -115,17 +105,17 @@ export async function onRequest(context) {
           AND sr.store_id IN (
             SELECT store_id FROM user_store_rel WHERE user_id = ?
           )
-          ${store_id ? 'AND sr.store_id = ?' : ''}
+          ${storeID ? 'AND sr.store_id = ?' : ''}
           GROUP BY u.user_name
           ORDER BY total_sales DESC
           LIMIT 5
         `;
         
         const topSalesParams = [
-          firstDay,
-          lastDay,
+          firstDayTs,
+          lastDayTs,
           user.id,
-          ...(store_id ? [store_id] : [])
+          ...(storeID ? [storeID] : [])
         ];
 
         topSalespeople = await db.prepare(topSalesQuery)

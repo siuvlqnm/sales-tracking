@@ -1,13 +1,5 @@
 import { getAuthHeader, isTokenExpired, clearAuth } from './authUtils';
 
-export type SalesRecord = {
-  id: string;
-  user_name: string;
-  store_name: string;
-  actual_amount: number;
-  submit_ts: number;
-}
-
 // API 请求基础配置
 const baseConfig = {
   headers: {
@@ -72,15 +64,29 @@ function getChinaTimestamp(): number {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' })).getTime();
 }
 
+export type formSalesRecord = {
+  amount: string;
+  customerName: string;
+  productID: string;
+}
+
 // 修改提交销售记录的函数
-export async function submitSalesRecords(storeId: string, amounts: number[]) {
+export async function submitSalesRecords(storeId: string, records: formSalesRecord[]) {
   const timestamp = getChinaTimestamp();
+  
+  // 过滤出有效记录
+  const validRecords = records.filter(record => 
+    record.amount && record.customerName && record.productID
+  ).map(record => ({
+    ...record,
+    amount: parseFloat(record.amount), // 确保金额是数字
+  }));
   
   const response = await fetchWithAuth('/api/v1/sales/form', {
     method: 'POST',
     body: JSON.stringify({
       store_id: storeId,
-      amounts: amounts,
+      records: validRecords,
       timestamp
     })
   });
@@ -96,28 +102,94 @@ export async function submitSalesRecords(storeId: string, amounts: number[]) {
 // 查询销售记录
 interface SalesRecordQuery {
   date?: Date;
-  storeId?: string;
+  storeID?: string;
+}
+
+export type SalesRecord = {
+  id: string;
+  userName: string;
+  storeName: string;
+  actualAmount: number;
+  submitTs: number;
+  customerName: string;
+  phone?: string;
+  productName: string;
+  notes?: string;
+  orderNo: string;
+}
+
+interface ApiSalesRecord {
+  id: string;
+  user_name: string;
+  store_name: string;
+  actual_amount: number;
+  submit_ts: number;
+  customer_name: string;
+  phone?: string;
+  product_name: string;
+  notes?: string;
+  order_no: string;
+}
+
+// 添加数据转换函数
+function convertApiSalesRecord(ApiSalesRecord: ApiSalesRecord): SalesRecord {
+  return {
+    id: ApiSalesRecord.id,
+    userName: ApiSalesRecord.user_name,
+    storeName: ApiSalesRecord.store_name,
+    actualAmount: ApiSalesRecord.actual_amount,
+    submitTs: ApiSalesRecord.submit_ts,
+    customerName: ApiSalesRecord.customer_name,
+    phone: ApiSalesRecord.phone,
+    productName: ApiSalesRecord.product_name,
+    notes: ApiSalesRecord.notes,
+    orderNo: ApiSalesRecord.order_no,
+  };
 }
 
 export async function querySalesRecords(params: SalesRecordQuery = {}): Promise<SalesRecord[]> {
   const queryParams = new URLSearchParams();
   
   if (params.date) {
-    // 调整为东八区时间
+    // 转换为东八区时间戳
     const date = new Date(params.date);
-    date.setHours(date.getHours() + 8);
-    // 转换为 YYYY-MM-DD 格式
-    const formatted_date = date.toISOString().split('T')[0];
-    queryParams.set('start_date', formatted_date);
-    queryParams.set('end_date', formatted_date);
+    // 设置为当天的开始时间 (00:00:00)
+    const startTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    startTime.setHours(startTime.getHours() + 8);
+    const startTs = startTime.getTime();
+    
+    // 设置为当天的结束时间 (23:59:59)
+    const endTime = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+    endTime.setHours(endTime.getHours() + 8);
+    const endTs = endTime.getTime();
+    
+    queryParams.set('startTs', startTs.toString());
+    queryParams.set('endTs', endTs.toString());
   }
   
-  if (params.storeId && params.storeId !== 'all') {
-    queryParams.set('store_id', params.storeId);
+  if (params.storeID && params.storeID !== 'all') {
+    queryParams.set('storeID', params.storeID);
   }
 
   const response = await fetchWithAuth(`/api/v1/sales/query?${queryParams.toString()}`);
-  return response.json();
+  const apiRecords = await response.json();
+  return apiRecords.map(convertApiSalesRecord);
+}
+
+// 添加删除销售记录的函数
+export async function deleteSalesRecord(recordId: string, reason: string): Promise<void> {
+  const response = await fetchWithAuth('/api/v1/sales/query', {
+    method: 'DELETE',
+    body: JSON.stringify({
+      recordID: recordId,
+      reason: reason
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || '删除失败');
+  }
 }
 
 // Add this type definition before the getChartData function
@@ -173,7 +245,7 @@ export async function getDashboardData(params: {
   try {
     const queryParams = new URLSearchParams();
     if (params?.storeId && params.storeId !== 'all') {
-      queryParams.set('store_id', params.storeId);
+      queryParams.set('storeID', params.storeId);
     }
 
     const response = await fetchWithAuth(
@@ -184,5 +256,26 @@ export async function getDashboardData(params: {
   } catch (error) {
     console.error('获取仪表盘数据过程中发生错误：', error);
     throw new Error('获取仪表盘数据失败，请重试。');
+  }
+}
+
+export type Product = {
+  productID: string;
+  productName: string;
+}
+
+// 获取商品列表
+export async function getProducts(): Promise<Product[]> {
+  try {
+    const response = await fetchWithAuth('/api/v1/sales/products');
+    if (!response.ok) {
+      console.error('Failed to fetch products');
+      return [];
+    }
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
   }
 }
