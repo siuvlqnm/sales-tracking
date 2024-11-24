@@ -130,38 +130,6 @@ export default function SalesCharts() {
           </CardContent>
         </Card>
 
-        {/* 销售人员排名卡片 - 仅管理员可见 */}
-        {user?.role === 'manager' && salesData.topSalespeople && (
-          <Card>
-            <CardHeader>
-              <CardTitle>老师业绩排名</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {salesData.topSalespeople.length === 0 ? (
-                <div className="text-center py-4 text-gray-500">暂无数据</div>
-              ) : (
-                <ul className="space-y-4">
-                  {salesData.topSalespeople.map((person, index) => (
-                    <li key={index}>
-                      <div className="flex justify-between items-center mb-1">
-                        <span>{person.name}</span>
-                        <span>¥{person.total.toLocaleString('zh-CN', { 
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2 
-                        })}</span>
-                      </div>
-                      <Progress 
-                        value={(person.total / maxSalespersonTotal) * 100} 
-                        className="h-2"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* 商品销售占比卡片 */}
         <Card>
           <CardHeader>
@@ -199,6 +167,38 @@ export default function SalesCharts() {
             )}
           </CardContent>
         </Card>
+
+        {/* 销售人员排名卡片 - 仅管理员可见 */}
+        {user?.role === 'manager' && salesData.topSalespeople && (
+          <Card>
+            <CardHeader>
+              <CardTitle>老师业绩排名</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {salesData.topSalespeople.length === 0 ? (
+                <div className="text-center py-4 text-gray-500">暂无数据</div>
+              ) : (
+                <ul className="space-y-4">
+                  {salesData.topSalespeople.map((person, index) => (
+                    <li key={index}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span>{person.name}</span>
+                        <span>¥{person.total.toLocaleString('zh-CN', { 
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2 
+                        })}</span>
+                      </div>
+                      <Progress 
+                        value={(person.total / maxSalespersonTotal) * 100} 
+                        className="h-2"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
