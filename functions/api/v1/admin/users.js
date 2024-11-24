@@ -72,9 +72,9 @@ export async function onRequest(context) {
         });
       }
 
-      // 验证姓名格式（只允许中文字符）
-      if (!/^[\u4e00-\u9fa5]{2,20}$/.test(user_name)) {
-        return new Response(JSON.stringify({ message: '员工姓名只能包含2-20个中文字符' }), {
+      // 验证姓名格式（允许中文、英文和数字）
+      if (!/^[\u4e00-\u9fa5a-zA-Z0-9]{2,20}$/.test(user_name)) {
+        return new Response(JSON.stringify({ message: '员工姓名只能包含2-20个字符（中文、英文或数字）' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });

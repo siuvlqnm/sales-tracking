@@ -60,7 +60,7 @@ const userSchema = z.object({
   user_name: z.string()
     .min(2, '员工姓名至少2个字符')
     .max(20, '员工姓名不能超过20个字符')
-    .regex(/^[\u4e00-\u9fa5]{2,20}$/, '员工姓名只能包含中文字符')
+    .regex(/^[\u4e00-\u9fa5a-zA-Z0-9]+$/, '员工姓名只能包含中文、英文和数字')
 });
 
 const roleSchema = z.object({

@@ -40,3 +40,6 @@ wrangler.toml
 /.wrangler/
 
 deploy.zip
+
+# sqlite
+import.sql
